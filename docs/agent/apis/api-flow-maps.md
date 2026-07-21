@@ -114,6 +114,7 @@ POST /api/v1/jobs/upload
 | `GET /resumes/list` | db.list_resumes() |
 | `PATCH /resumes/{id}` | db.update_resume() |
 | `DELETE /resumes/{id}` | db.delete_resume() |
+| `POST /resumes/{id}/ats-score` | Baseline "before" ATS score for the untailored resume vs a job (`{job_id}` body). Reuses the job's cached JD keywords + `compute_ats_score`; runs **no** LLM tailoring. 404 (resume/job missing), 422 (no processed_data). Returns `ATSScore`. |
 
 ## Application Tracker
 

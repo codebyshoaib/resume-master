@@ -471,6 +471,12 @@ class ImproveResumeRequest(BaseModel):
     prompt_id: str | None = None
 
 
+class AtsScoreRequest(BaseModel):
+    """Request to compute the baseline ATS score for an untailored resume."""
+
+    job_id: str
+
+
 class ImprovementSuggestion(BaseModel):
     """Single improvement suggestion."""
 

@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 from app.schemas import (
     ATSScore,
     ATSSubScores,
+    AtsScoreRequest,
     GenerateContentResponse,
     GenerateInterviewPrepResponse,
     ImproveResumeConfirmRequest,
@@ -58,7 +59,11 @@ from app.services.improver import (
     verify_skill_target_plan,
     verify_diff_result,
 )
-from app.services.refiner import refine_resume, calculate_keyword_match
+from app.services.refiner import (
+    analyze_keyword_gaps,
+    calculate_keyword_match,
+    refine_resume,
+)
 from app.services.ats import compute_ats_score
 from app.schemas.refinement import RefinementConfig
 from app.services.cover_letter import (
@@ -108,6 +113,48 @@ def _get_default_prompt_id() -> str:
 
 def _hash_job_content(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+async def _get_or_extract_job_keywords(
+    job: dict[str, Any],
+    job_id: str,
+) -> dict[str, Any]:
+    """Return the job's JD keywords, reusing the per-job cache when valid.
+
+    Keywords are cached on the job (keyed by a content hash). On a cache hit the
+    stored keywords are returned as-is; on a miss they are extracted once via the
+    LLM keyword-extraction call and persisted (alongside surfaced company/role so
+    the tracker auto-create path can read them without another LLM call). Callers
+    that only need the keywords — including the score-only ATS endpoint — never
+    trigger a redundant extraction when a valid cache already exists.
+    """
+    cached_keywords = job.get("job_keywords")
+    cached_hash = job.get("job_keywords_hash")
+    content_hash = _hash_job_content(job["content"])
+    if cached_keywords and cached_hash == content_hash:
+        return cached_keywords
+
+    job_keywords = await extract_job_keywords(job["content"])
+    cache_updates: dict[str, Any] = {
+        "job_keywords": job_keywords,
+        "job_keywords_hash": content_hash,
+    }
+    # LLM output isn't guaranteed to be a string — guard before .strip().
+    raw_company = job_keywords.get("company")
+    raw_role = job_keywords.get("role")
+    company = raw_company.strip() if isinstance(raw_company, str) else ""
+    role = raw_role.strip() if isinstance(raw_role, str) else ""
+    if company:
+        cache_updates["company"] = company
+    if role:
+        cache_updates["role"] = role
+    try:
+        updated_job = await db.update_job(job_id, cache_updates)
+        if not updated_job:
+            logger.warning("Failed to persist job keywords for job %s.", job_id)
+    except Exception as e:
+        logger.warning("Failed to persist job keywords for job %s: %s", job_id, e)
+    return job_keywords
 
 
 def _normalize_payload(value: Any) -> Any:
@@ -459,6 +506,17 @@ def _preserve_personal_info(
     return result, warnings
 
 
+def _ats_score_from_raw(ats_raw: dict[str, Any]) -> ATSScore:
+    """Map the compute_ats_score result dict into the ATSScore response schema."""
+    return ATSScore(
+        overall_score=ats_raw["overall_score"],
+        sub_scores=ATSSubScores(**ats_raw["sub_scores"]),
+        missing_keywords=ats_raw["missing_keywords"],
+        injectable_keywords=ats_raw["injectable_keywords"],
+        recommendations=ats_raw["recommendations"],
+    )
+
+
 def _build_ats_score(
     improved_data: dict[str, Any],
     job_keywords: dict[str, Any],
@@ -484,13 +542,7 @@ def _build_ats_score(
             missing_keywords=kw_analysis.non_injectable_keywords if kw_analysis else [],
             injectable_keywords=kw_analysis.injectable_keywords if kw_analysis else [],
         )
-        return ATSScore(
-            overall_score=ats_raw["overall_score"],
-            sub_scores=ATSSubScores(**ats_raw["sub_scores"]),
-            missing_keywords=ats_raw["missing_keywords"],
-            injectable_keywords=ats_raw["injectable_keywords"],
-            recommendations=ats_raw["recommendations"],
-        )
+        return _ats_score_from_raw(ats_raw)
     except Exception as e:
         logger.warning("ATS score computation failed", exc_info=True)
         return None
@@ -793,6 +845,59 @@ async def list_resumes(include_master: bool = Query(False)) -> ResumeListRespons
     return ResumeListResponse(request_id=str(uuid4()), data=summaries)
 
 
+@router.post("/{resume_id}/ats-score", response_model=ATSScore)
+async def ats_score_endpoint(
+    resume_id: str,
+    request: AtsScoreRequest,
+) -> ATSScore:
+    """Compute the baseline ATS score for the current, untailored resume.
+
+    Scores the resume's stored ``processed_data`` against a job WITHOUT running
+    the LLM tailoring pipeline. Reuses the job's cached JD keywords (extracting
+    once on a cold cache) and the shared ``compute_ats_score`` helper so the
+    "before" score is computed the same way as the post-tailor "after" score.
+    """
+    resume = await db.get_resume(resume_id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    job = await db.get_job(request.job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job description not found")
+
+    resume_data = _get_original_resume_data(resume)
+    if not resume_data:
+        raise HTTPException(
+            status_code=422,
+            detail="Resume has not finished processing yet. Please try again shortly.",
+        )
+
+    try:
+        job_keywords = await _get_or_extract_job_keywords(job, request.job_id)
+        # Baseline: the untailored resume is its own "master", so missing JD
+        # keywords are surfaced as non-injectable (nothing to safely inject yet).
+        kw_analysis = analyze_keyword_gaps(job_keywords, resume_data, resume_data)
+        ats_raw = compute_ats_score(
+            refined_resume=resume_data,
+            job_keywords=job_keywords,
+            keyword_match_percentage=calculate_keyword_match(resume_data, job_keywords),
+            missing_keywords=kw_analysis.non_injectable_keywords,
+            injectable_keywords=kw_analysis.injectable_keywords,
+        )
+        return _ats_score_from_raw(ats_raw)
+    except Exception as e:
+        logger.error(
+            "Baseline ATS score failed for resume %s / job %s: %s",
+            resume_id,
+            request.job_id,
+            e,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to compute ATS score. Please try again.",
+        )
+
+
 @router.post("/improve/preview", response_model=ImproveResumeResponse)
 async def improve_resume_preview_endpoint(
     request: ImproveResumeRequest,
@@ -854,43 +959,7 @@ async def _improve_preview_flow(
     prompt_id: str,
 ) -> ImproveResumeResponse:
     """Inner flow for improve/preview, extracted so it can be wrapped in wait_for."""
-    job_keywords = job.get("job_keywords")
-    job_keywords_hash = job.get("job_keywords_hash")
-    content_hash = _hash_job_content(job["content"])
-    if not job_keywords or job_keywords_hash != content_hash:
-        job_keywords = await extract_job_keywords(job["content"])
-        # Cache extracted keywords with a content hash for basic invalidation.
-        # Also surface company/role to the job's top level so the tracker's
-        # auto-create-on-confirm path can read them without an extra LLM call.
-        cache_updates: dict[str, Any] = {
-            "job_keywords": job_keywords,
-            "job_keywords_hash": content_hash,
-        }
-        # LLM output isn't guaranteed to be a string — guard before .strip().
-        raw_company = job_keywords.get("company")
-        raw_role = job_keywords.get("role")
-        company = raw_company.strip() if isinstance(raw_company, str) else ""
-        role = raw_role.strip() if isinstance(raw_role, str) else ""
-        if company:
-            cache_updates["company"] = company
-        if role:
-            cache_updates["role"] = role
-        try:
-            updated_job = await db.update_job(
-                request.job_id,
-                cache_updates,
-            )
-            if not updated_job:
-                logger.warning(
-                    "Failed to persist job keywords for job %s.",
-                    request.job_id,
-                )
-        except Exception as e:
-            logger.warning(
-                "Failed to persist job keywords for job %s: %s",
-                request.job_id,
-                e,
-            )
+    job_keywords = await _get_or_extract_job_keywords(job, request.job_id)
     original_resume_data = _get_original_resume_data(resume)
     # Collect warnings throughout the process
     response_warnings: list[str] = []
