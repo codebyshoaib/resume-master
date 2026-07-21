@@ -131,16 +131,22 @@ def _tailor_completed_properties(
         "resume_id": request.resume_id,
         "job_id": request.job_id,
     }
-    stats = response.data.refinement_stats
-    if stats is not None:
-        before = stats.initial_match_percentage
-        after = stats.final_match_percentage
-        properties["before_score"] = before
-        properties["after_score"] = after
-        properties["delta"] = after - before
-    ats = response.data.ats_score
-    if ats is not None:
-        properties["ats_overall_score"] = ats.overall_score
+    # Score enrichment must never raise into the request path — this builder is
+    # evaluated as an argument, outside emit_event's swallow boundary. Analytics
+    # is best-effort; a bad/missing field drops the metric, never the tailor.
+    try:
+        stats = response.data.refinement_stats
+        if stats is not None:
+            before = stats.initial_match_percentage
+            after = stats.final_match_percentage
+            properties["before_score"] = before
+            properties["after_score"] = after
+            properties["delta"] = after - before
+        ats = response.data.ats_score
+        if ats is not None:
+            properties["ats_overall_score"] = ats.overall_score
+    except Exception:  # noqa: BLE001 — analytics is best-effort, never fatal
+        logger.warning("Failed to build tailor_completed analytics props", exc_info=True)
     return properties
 
 
@@ -922,6 +928,11 @@ async def ats_score_endpoint(
             status_code=422,
             detail="Resume has not finished processing yet. Please try again shortly.",
         )
+
+    # Normalize the same way the post-tailor "after" path does (see the preview
+    # flow) so the before→after delta reflects tailoring, not normalization
+    # artifacts. Deepcopy first — never mutate the cached DB dict.
+    resume_data = normalize_resume_data(copy.deepcopy(resume_data))
 
     try:
         job_keywords = await _get_or_extract_job_keywords(job, request.job_id)

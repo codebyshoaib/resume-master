@@ -1,8 +1,10 @@
 """Local-first product analytics (self-hosted only — no external dependency).
 
-``emit_event`` is **fire-and-forget**: it records a lightweight, PII-free event
-for product visibility and must NEVER raise or break the request that triggered
-it. All datastore work is wrapped in try/except and log-and-swallowed on failure.
+``emit_event`` records a lightweight, PII-free event for product visibility and
+must NEVER raise or break the request that triggered it. All datastore work is
+wrapped in try/except and log-and-swallowed on failure. It is best-effort, not
+truly async: the cost is a single inline local SQLite write (negligible under
+the single-worker/WAL assumption), not a backgrounded task.
 
 Privacy invariant: events carry ids and numeric metrics ONLY — never resume
 content, names, emails, or job-description text. Everything stays in the local

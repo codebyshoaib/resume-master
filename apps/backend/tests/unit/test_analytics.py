@@ -97,3 +97,29 @@ class TestAnalyticsSummary:
         windowed = await temp_db.get_analytics_summary(days=7)
         assert windowed["funnel"]["uploads"] == 1
         assert windowed["days"] == 7
+
+
+class TestTailorCompletedProperties:
+    """The tailor_completed prop-builder is evaluated as an argument, outside
+    emit_event's swallow boundary — so it must never raise into the request."""
+
+    def test_never_raises_on_bad_response(self):
+        import types
+
+        from app.routers.resumes import _tailor_completed_properties
+
+        class _BoomData:
+            @property
+            def refinement_stats(self):
+                raise ValueError("boom")
+
+            @property
+            def ats_score(self):
+                raise ValueError("boom")
+
+        request = types.SimpleNamespace(resume_id="r1", job_id="j1")
+        response = types.SimpleNamespace(data=_BoomData())
+
+        # Must return the base ids without propagating the exception.
+        props = _tailor_completed_properties(request, response)
+        assert props == {"resume_id": "r1", "job_id": "j1"}

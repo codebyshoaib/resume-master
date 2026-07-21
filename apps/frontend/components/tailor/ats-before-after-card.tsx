@@ -51,7 +51,7 @@ function SubScoreRow({
         <span className="tabular-nums">
           {before !== null && (
             <>
-              <span className="text-steel-grey">{fmt(before)}</span>
+              <span className="text-steel-grey">{fmt(before)}%</span>
               <span className="mx-1 text-steel-grey">&rarr;</span>
             </>
           )}
