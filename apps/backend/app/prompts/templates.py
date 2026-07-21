@@ -200,6 +200,16 @@ written in the posting; use an empty string for either if it is not stated.
 Job description:
 {job_description}"""
 
+ATS_STYLE_GUIDANCE = """
+ATS WRITING & STYLE RULES - FOLLOW EXACTLY:
+- Begin each bullet with a plain, specific action verb (e.g. Built, Led, Designed, Shipped, Managed, Reduced, Increased, Automated, Migrated, Analyzed). Vary the verb across bullets; do not repeat the same one.
+- NEVER use these inflated or AI-cliche verbs/buzzwords in ANY tense or form (spearhead, orchestrate, champion, synergize, leverage, revolutionize, pioneer, catalyze, operationalize, architect-as-a-verb, envision, facilitate, utilize, robust, scalable, holistic, impactful, proactive, cutting-edge, world-class, best-in-class, game-changing, disruptive, seamless, dynamic, results-driven, detail-oriented, team player, go-getter, passionate). Use the plain equivalent instead (led, coordinated, used, built, helped, ...).
+- Mirror the job description's exact wording for skills the resume already supports (ATS keyword match); never stuff unrelated keywords.
+- Keep bullets to one concise line; quantify only with numbers already present in the resume.
+- Plain professional English: no em dashes, no marketing adjectives, no first-person pronouns.
+"""
+
+
 CRITICAL_TRUTHFULNESS_RULES_TEMPLATE = """CRITICAL TRUTHFULNESS RULES - NEVER VIOLATE:
 1. DO NOT add any skill, tool, technology, or certification that is not explicitly mentioned in the original resume
 2. DO NOT invent numeric achievements (e.g., "increased by 30%") unless they exist in original
@@ -212,7 +222,7 @@ CRITICAL_TRUTHFULNESS_RULES_TEMPLATE = """CRITICAL TRUTHFULNESS RULES - NEVER VI
 9. NEVER remove existing skills, certifications, languages, or awards. You may reorder by relevance, but every original item must remain.
 
 Violation of these rules could cause serious problems for the candidate in job interviews.
-"""
+""" + ATS_STYLE_GUIDANCE
 
 
 def _build_truthfulness_rules(rule_7: str) -> str:
@@ -528,6 +538,7 @@ RULES:
 10. Exception to rule 2: you may add a skill only if it appears in the verified skill targets below
 11. By DEFAULT, scan the summary and every work, project, and education description for content that already demonstrates a job-description keyword or skill, and reframe that text using the job description's terminology where it is not already phrased that way (per rule 9, leave content that already aligns well), while preserving the candidate's actual accomplishment. Do NOT add new work, metrics, or responsibilities; only restate existing content in the JD's language, and verify every reframe stays factually accurate.
 12. Preserve original capitalization, especially for proper nouns, technical terms (e.g., REST, API, AWS), and acronyms. Do not change the casing of words that were capitalized in the original.
+13. Use plain action verbs. NEVER use inflated or AI-cliche verbs/buzzwords in any tense or form: spearhead, orchestrate, champion, synergize, leverage, revolutionize, pioneer, catalyze, operationalize, architect (as a verb), envision, facilitate, utilize, robust, scalable, holistic, impactful, proactive, cutting-edge, world-class, best-in-class, game-changing, disruptive, seamless, dynamic, results-driven, detail-oriented, team player. Use the plain equivalent (led, coordinated, used, built, helped).
 
 PATHS you can target:
 - "summary" — the resume summary text

@@ -69,6 +69,30 @@ class TestRemoveAiPhrases:
         # The input dict should not be mutated by remove_ai_phrases
         assert data == data_before
 
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Spearhead the migration to microservices",  # present tense
+            "Spearheading a team of engineers",  # gerund
+            "Spearheads new initiatives each quarter",  # third person
+        ],
+    )
+    def test_scrubs_verb_inflections_not_just_past_tense(self, text):
+        """Regression: the blacklist stores 'spearheaded' but the LLM emits
+        present/gerund forms too. All inflections must be scrubbed, not just
+        the exact past-tense string."""
+        cleaned, removed = remove_ai_phrases({"summary": text})
+        assert "spearhead" not in cleaned["summary"].lower()
+        assert "spearheaded" in [r.lower() for r in removed]
+
+    def test_word_boundary_avoids_substring_false_positive(self):
+        """'robust' is blacklisted but must not fire inside 'robustness'."""
+        cleaned, removed = remove_ai_phrases(
+            {"summary": "Improved system robustness across services"}
+        )
+        assert cleaned["summary"] == "Improved system robustness across services"
+        assert removed == []
+
 
 class TestValidateMasterAlignment:
     """Tests for validate_master_alignment() — fabrication detection."""

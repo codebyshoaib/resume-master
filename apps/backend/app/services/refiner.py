@@ -230,6 +230,40 @@ def analyze_keyword_gaps(
     )
 
 
+def _phrase_pattern(phrase: str) -> "re.Pattern[str]":
+    """Build a case-insensitive, word-boundary-aware matcher for a blacklist phrase.
+
+    For single-word verbs the blacklist stores one inflected form (e.g.
+    "spearheaded"); we derive the root and match its common inflections
+    (spearhead/spearheads/spearheading/spearheaded) so present-tense and gerund
+    forms are caught too — the exact-string match was the bug that let
+    "spearhead"/"spearheading" slip through. Word boundaries also stop
+    substring false positives (e.g. "robust" inside "robustness").
+
+    ponytail: replacement stays the mapped past-tense form ("led"), so a scrubbed
+    gerund reads slightly off ("spearheading"->"led"). Acceptable: the prompt-level
+    ban stops most generation, so this net rarely fires. Upgrade to tense-aware
+    replacement only if that roughness shows up in real output.
+    """
+    if phrase.isalpha():
+        root = phrase
+        for suffix in ("ing", "ed", "es", "s"):
+            if phrase.endswith(suffix) and len(phrase) - len(suffix) >= 4:
+                root = phrase[: -len(suffix)]
+                break
+        return re.compile(rf"\b{re.escape(root)}(?:e|ed|es|ing|s)?\b", re.IGNORECASE)
+    left = r"\b" if phrase[:1].isalnum() else ""
+    right = r"\b" if phrase[-1:].isalnum() else ""
+    return re.compile(rf"{left}{re.escape(phrase)}{right}", re.IGNORECASE)
+
+
+# Precompiled once at import: (original phrase, matcher, replacement).
+_AI_PHRASE_PATTERNS: list[tuple[str, "re.Pattern[str]", str]] = [
+    (phrase, _phrase_pattern(phrase), AI_PHRASE_REPLACEMENTS.get(phrase.lower(), ""))
+    for phrase in AI_PHRASE_BLACKLIST
+]
+
+
 def remove_ai_phrases(
     data: dict[str, Any],
     job_description: str = "",
@@ -262,15 +296,12 @@ def remove_ai_phrases(
 
     def clean_text(text: str) -> str:
         cleaned = text
-        for phrase in AI_PHRASE_BLACKLIST:
+        for phrase, pattern, replacement in _AI_PHRASE_PATTERNS:
             # Skip phrases that appear in the job description
             if phrase.lower() in jd_protected:
                 continue
-            if phrase.lower() in cleaned.lower():
+            if pattern.search(cleaned):
                 removed.add(phrase)
-                replacement = AI_PHRASE_REPLACEMENTS.get(phrase.lower(), "")
-                # Case-insensitive replacement
-                pattern = re.compile(re.escape(phrase), re.IGNORECASE)
                 cleaned = pattern.sub(replacement, cleaned)
         return cleaned
 
