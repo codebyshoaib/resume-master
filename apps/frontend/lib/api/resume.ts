@@ -380,6 +380,37 @@ export async function retryProcessing(resumeId: string): Promise<ResumeUploadRes
   return res.json();
 }
 
+/** A single ATS parseability finding (mirrors backend AtsLintFinding). */
+export interface AtsLintFinding {
+  code: string;
+  severity: 'error' | 'warn' | 'info';
+  message: string;
+  fix: string;
+  path: string | null;
+}
+
+/** ATS lint response (mirrors backend AtsLintResponse). */
+export interface AtsLintResult {
+  findings: AtsLintFinding[];
+  summary: {
+    errors: number;
+    warnings: number;
+    infos: number;
+  };
+}
+
+/** Fetches deterministic ATS parseability findings for a resume. */
+export async function fetchAtsLint(resumeId: string): Promise<AtsLintResult> {
+  const res = await apiFetch(
+    `/resumes/${encodeURIComponent(normalizeResumeId(resumeId))}/ats-lint`
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to load ATS lint (status ${res.status}): ${text}`);
+  }
+  return (await res.json()) as AtsLintResult;
+}
+
 /** Fetches the job description used to tailor a resume */
 export async function fetchJobDescription(
   resumeId: string

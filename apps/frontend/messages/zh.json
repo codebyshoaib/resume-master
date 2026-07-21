@@ -1034,5 +1034,19 @@
       "skillGaps": "技能差距",
       "talkingPoints": "沟通要点"
     }
+  },
+  "atsLint": {
+    "title": "ATS 可解析性",
+    "subtitle": "对简历结构和内容的确定性检查。",
+    "loading": "检查中...",
+    "error": "无法运行 ATS 检查。",
+    "allClear": "未发现可解析性问题",
+    "counts": "{errors} 个错误 · {warnings} 个警告 · {infos} 个提示",
+    "fixLabel": "修复：",
+    "groups": {
+      "errors": "错误",
+      "warnings": "警告",
+      "infos": "提示"
+    }
   }
 }

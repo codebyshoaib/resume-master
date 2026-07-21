@@ -25,6 +25,7 @@ import {
   MessagesSquare,
 } from 'lucide-react';
 import { EnrichmentModal } from '@/components/enrichment/enrichment-modal';
+import { AtsLintPanel } from '@/components/resume/ats-lint-panel';
 import { useTranslations } from '@/lib/i18n';
 import { withLocalizedDefaultSections } from '@/lib/utils/section-helpers';
 import { useLanguage } from '@/lib/context/language-context';
@@ -449,6 +450,11 @@ export default function ResumeViewerPage() {
               fallbackLabels={{ name: t('resume.defaults.name') }}
             />
           </div>
+        </div>
+
+        {/* ATS Parseability Linter */}
+        <div className="mt-8 max-w-3xl mx-auto no-print">
+          <AtsLintPanel resumeId={resumeId} />
         </div>
 
         <div className="flex justify-end pt-4 no-print">

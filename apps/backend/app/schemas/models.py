@@ -624,6 +624,32 @@ class ImproveResumeConfirmRequest(BaseModel):
     improvements: list[ImprovementSuggestion]
 
 
+# ATS Parseability Lint Models
+class AtsLintFinding(BaseModel):
+    """A single ATS parseability issue found by the deterministic linter."""
+
+    code: str
+    severity: Literal["error", "warn", "info"]
+    message: str
+    fix: str
+    path: str | None = None
+
+
+class AtsLintSummary(BaseModel):
+    """Counts of findings by severity."""
+
+    errors: int = 0
+    warnings: int = 0
+    infos: int = 0
+
+
+class AtsLintResponse(BaseModel):
+    """Response for the ATS parseability lint endpoint."""
+
+    findings: list[AtsLintFinding] = Field(default_factory=list)
+    summary: AtsLintSummary = Field(default_factory=AtsLintSummary)
+
+
 # Config Models
 ReasoningEffortLiteral = Literal["minimal", "low", "medium", "high"]
 

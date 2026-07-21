@@ -1034,5 +1034,19 @@
       "skillGaps": "Brechas de habilidades",
       "talkingPoints": "Puntos clave"
     }
+  },
+  "atsLint": {
+    "title": "Compatibilidad con ATS",
+    "subtitle": "Comprobaciones deterministas de la estructura y el contenido de tu currículum.",
+    "loading": "Comprobando...",
+    "error": "No se pudieron ejecutar las comprobaciones de ATS.",
+    "allClear": "No se encontraron problemas de compatibilidad",
+    "counts": "{errors} errores · {warnings} advertencias · {infos} info",
+    "fixLabel": "Solución:",
+    "groups": {
+      "errors": "Errores",
+      "warnings": "Advertencias",
+      "infos": "Información"
+    }
   }
 }

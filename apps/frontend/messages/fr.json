@@ -1006,5 +1006,19 @@
       "moveFailed": "Impossible de déplacer la candidature.",
       "deleteFailed": "Impossible de supprimer la ou les candidatures."
     }
+  },
+  "atsLint": {
+    "title": "Compatibilité ATS",
+    "subtitle": "Vérifications déterministes de la structure et du contenu de votre CV.",
+    "loading": "Vérification...",
+    "error": "Impossible d'exécuter les vérifications ATS.",
+    "allClear": "Aucun problème de compatibilité détecté",
+    "counts": "{errors} erreurs · {warnings} avertissements · {infos} info",
+    "fixLabel": "Correction :",
+    "groups": {
+      "errors": "Erreurs",
+      "warnings": "Avertissements",
+      "infos": "Informations"
+    }
   }
 }
