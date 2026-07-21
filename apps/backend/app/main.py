@@ -19,6 +19,7 @@ from app.config import settings
 from app.database import db
 from app.pdf import close_pdf_renderer, init_pdf_renderer
 from app.routers import (
+    analytics_router,
     applications_router,
     config_router,
     enrichment_router,
@@ -94,6 +95,7 @@ app.include_router(jobs_router, prefix="/api/v1")
 app.include_router(enrichment_router, prefix="/api/v1")
 app.include_router(applications_router, prefix="/api/v1")
 app.include_router(resume_wizard_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
 
 
 @app.get("/")

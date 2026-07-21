@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from app.database import db
+from app.services.analytics import emit_event
 from app.services.improver import extract_job_keywords
 from app.schemas import (
     APPLICATION_STATUS_ORDER,
@@ -93,6 +94,15 @@ async def create_application(request: ManualApplicationCreate) -> ApplicationRes
             await db.update_job(job["job_id"], {"company": company, "role": role})
         except Exception as e:
             logger.warning("Failed to cache company/role on job %s: %s", job["job_id"], e)
+
+    await emit_event(
+        "application_created",
+        {
+            "application_id": application["application_id"],
+            "status": application["status"],
+            "source": "manual",
+        },
+    )
 
     return ApplicationResponse(**application)
 
