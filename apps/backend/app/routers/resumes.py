@@ -22,6 +22,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 from app.schemas import (
+    AtsLintFinding,
+    AtsLintResponse,
+    AtsLintSummary,
     ATSScore,
     ATSSubScores,
     GenerateContentResponse,
@@ -61,6 +64,7 @@ from app.services.improver import (
 from app.services.analytics import emit_event
 from app.services.refiner import refine_resume, calculate_keyword_match
 from app.services.ats import compute_ats_score
+from app.services.ats_lint import lint_resume
 from app.schemas.refinement import RefinementConfig
 from app.services.cover_letter import (
     generate_cover_letter,
@@ -1726,6 +1730,37 @@ async def download_resume_pdf(
 
     headers = {"Content-Disposition": f'attachment; filename="resume_{resume_id}.pdf"'}
     return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
+
+
+@router.get("/{resume_id}/ats-lint", response_model=AtsLintResponse)
+async def get_ats_lint(resume_id: str) -> AtsLintResponse:
+    """Lint a resume's parsed content for ATS parseability problems.
+
+    Runs the deterministic (no-LLM) linter over the stored structured resume
+    data and returns findings grouped with a severity summary. A high keyword
+    score does not guarantee an ATS-parseable resume — this surfaces the
+    content/structure issues that cause auto-rejections.
+    """
+    resume = await db.get_resume(resume_id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    resume_data = _get_original_resume_data(resume)
+    if not resume_data:
+        # No structured data (e.g. parsing failed or never ran). Nothing to
+        # lint deterministically; return an empty, well-formed result.
+        return AtsLintResponse()
+
+    findings = lint_resume(normalize_resume_data(copy.deepcopy(resume_data)))
+    summary = AtsLintSummary(
+        errors=sum(1 for f in findings if f["severity"] == "error"),
+        warnings=sum(1 for f in findings if f["severity"] == "warn"),
+        infos=sum(1 for f in findings if f["severity"] == "info"),
+    )
+    return AtsLintResponse(
+        findings=[AtsLintFinding(**finding) for finding in findings],
+        summary=summary,
+    )
 
 
 @router.delete("/{resume_id}")

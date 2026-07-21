@@ -1034,5 +1034,19 @@
       "skillGaps": "スキルギャップ",
       "talkingPoints": "話すべき要点"
     }
+  },
+  "atsLint": {
+    "title": "ATS 解析性",
+    "subtitle": "履歴書の構造と内容に対する確定的なチェック。",
+    "loading": "確認中...",
+    "error": "ATS チェックを実行できませんでした。",
+    "allClear": "解析性の問題は見つかりませんでした",
+    "counts": "エラー {errors} 件 · 警告 {warnings} 件 · 情報 {infos} 件",
+    "fixLabel": "修正:",
+    "groups": {
+      "errors": "エラー",
+      "warnings": "警告",
+      "infos": "情報"
+    }
   }
 }

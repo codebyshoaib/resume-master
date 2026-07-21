@@ -2,6 +2,9 @@
 
 from app.schemas.models import (
     AdditionalInfo,
+    AtsLintFinding,
+    AtsLintResponse,
+    AtsLintSummary,
     ATSScore,
     ATSSubScores,
     ApiKeyProviderStatus,
@@ -104,6 +107,9 @@ __all__ = [
     "ResumeFieldDiff",
     "ATSScore",
     "ATSSubScores",
+    "AtsLintFinding",
+    "AtsLintSummary",
+    "AtsLintResponse",
     "RefinementStats",
     "LLMConfigRequest",
     "LLMConfigResponse",

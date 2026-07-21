@@ -1034,5 +1034,19 @@
       "skillGaps": "Skill Gaps",
       "talkingPoints": "Talking Points"
     }
+  },
+  "atsLint": {
+    "title": "ATS Parseability",
+    "subtitle": "Deterministic checks on your resume's structure and content.",
+    "loading": "Checking...",
+    "error": "Could not run ATS checks.",
+    "allClear": "No parseability issues found",
+    "counts": "{errors} errors · {warnings} warnings · {infos} info",
+    "fixLabel": "Fix:",
+    "groups": {
+      "errors": "Errors",
+      "warnings": "Warnings",
+      "infos": "Info"
+    }
   }
 }
