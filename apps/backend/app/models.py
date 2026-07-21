@@ -122,6 +122,26 @@ class Application(Base):
     updated_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)
 
 
+class AnalyticsEvent(Base):
+    """A local, PII-free product-analytics event (self-hosted only).
+
+    Records lightweight product-usage signals (uploads, tailors, downloads, …)
+    so future decisions have local evidence. **Privacy invariant:** ``properties``
+    holds ids and numeric metrics ONLY — never resume content, names, emails, or
+    job-description text. Nothing here leaves the machine.
+
+    ``created_at`` is stored as an ISO-8601 string (like every other table) so
+    the lexical time comparisons the data layer already relies on keep working.
+    """
+
+    __tablename__ = "analytics_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_name: Mapped[str] = mapped_column(String, index=True)
+    properties: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[str] = mapped_column(String, default=_utcnow_iso, index=True)
+
+
 class ApiKey(Base):
     """An encrypted LLM provider API key.
 

@@ -58,6 +58,7 @@ from app.services.improver import (
     verify_skill_target_plan,
     verify_diff_result,
 )
+from app.services.analytics import emit_event
 from app.services.refiner import refine_resume, calculate_keyword_match
 from app.services.ats import compute_ats_score
 from app.schemas.refinement import RefinementConfig
@@ -86,7 +87,7 @@ async def _auto_create_tracker_application(
     try:
         company = (job or {}).get("company")
         role = title or (job or {}).get("role")
-        await db.create_application(
+        application = await db.create_application(
             job_id=job_id,
             resume_id=tailored_resume_id,
             master_resume_id=master_resume_id,
@@ -96,6 +97,42 @@ async def _auto_create_tracker_application(
         )
     except Exception as e:  # noqa: BLE001 - tracker is non-critical
         logger.warning("Failed to auto-create tracker application: %s", e)
+        return
+
+    await emit_event(
+        "application_created",
+        {
+            "application_id": application["application_id"],
+            "status": application["status"],
+            "source": "tailor",
+        },
+    )
+
+
+def _tailor_completed_properties(
+    request: ImproveResumeRequest,
+    response: ImproveResumeResponse,
+) -> dict[str, Any]:
+    """Build PII-free properties for the ``tailor_completed`` event.
+
+    ids + numeric scores only: before/after keyword-match percentages (and their
+    delta) plus the ATS overall score, each included only when available.
+    """
+    properties: dict[str, Any] = {
+        "resume_id": request.resume_id,
+        "job_id": request.job_id,
+    }
+    stats = response.data.refinement_stats
+    if stats is not None:
+        before = stats.initial_match_percentage
+        after = stats.final_match_percentage
+        properties["before_score"] = before
+        properties["after_score"] = after
+        properties["delta"] = after - before
+    ats = response.data.ats_score
+    if ats is not None:
+        properties["ats_overall_score"] = ats.overall_score
+    return properties
 
 
 def _get_default_prompt_id() -> str:
@@ -699,6 +736,16 @@ async def upload_resume(file: UploadFile = File(...)) -> ResumeUploadResponse:
         await db.update_resume(resume["resume_id"], {"processing_status": "failed"})
         resume["processing_status"] = "failed"
 
+    await emit_event(
+        "resume_uploaded",
+        {
+            "resume_id": resume["resume_id"],
+            "processing_status": resume["processing_status"],
+            "is_master": resume.get("is_master", False),
+            "size_bytes": len(content),
+        },
+    )
+
     # Return accurate status to client (API-001 fix)
     return ResumeUploadResponse(
         message=(
@@ -812,10 +859,15 @@ async def improve_resume_preview_endpoint(
     language = get_content_language()
     prompt_id = request.prompt_id or _get_default_prompt_id()
 
+    await emit_event(
+        "tailor_started",
+        {"resume_id": request.resume_id, "job_id": request.job_id, "prompt_id": prompt_id},
+    )
+
     stage = "load_job_keywords"
     detail = "Failed to preview resume. Please try again."
     try:
-        return await asyncio.wait_for(
+        response = await asyncio.wait_for(
             _improve_preview_flow(
                 request=request,
                 resume=resume,
@@ -825,6 +877,10 @@ async def improve_resume_preview_endpoint(
             ),
             timeout=settings.request_timeout_seconds,
         )
+        await emit_event(
+            "tailor_completed", _tailor_completed_properties(request, response)
+        )
+        return response
     except asyncio.TimeoutError:
         logger.error(
             "Improve preview timed out after %ss for resume %s / job %s",
@@ -1658,6 +1714,16 @@ async def download_resume_pdf(
     except PDFRenderError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
+    await emit_event(
+        "resume_pdf_downloaded",
+        {
+            "resume_id": resume_id,
+            "template": template,
+            "page_size": pageSize,
+            "size_bytes": len(pdf_bytes),
+        },
+    )
+
     headers = {"Content-Disposition": f'attachment; filename="resume_{resume_id}.pdf"'}
     return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
 
@@ -1827,6 +1893,14 @@ async def generate_cover_letter_endpoint(resume_id: str) -> GenerateContentRespo
 
     # Save to resume record
     await db.update_resume(resume_id, {"cover_letter": cover_letter_content})
+
+    await emit_event(
+        "cover_letter_generated",
+        {
+            "resume_id": resume_id,
+            "length_chars": len(cover_letter_content or ""),
+        },
+    )
 
     return GenerateContentResponse(
         content=cover_letter_content,

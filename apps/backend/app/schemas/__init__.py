@@ -71,6 +71,7 @@ from app.schemas.applications import (
     BulkStatusUpdate,
     ManualApplicationCreate,
 )
+from app.schemas.analytics import AnalyticsFunnel, AnalyticsSummaryResponse
 
 __all__ = [
     "PersonalInfo",
@@ -140,4 +141,6 @@ __all__ = [
     "BulkStatusUpdate",
     "BulkDelete",
     "ApplicationActionResponse",
+    "AnalyticsFunnel",
+    "AnalyticsSummaryResponse",
 ]

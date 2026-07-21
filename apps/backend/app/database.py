@@ -13,7 +13,7 @@ Two engines back one SQLite file:
 import asyncio
 import logging
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db_engine import init_models_sync, make_async_engine, make_sync_engine
-from app.models import ApiKey, Application, Improvement, Job, Resume
+from app.models import AnalyticsEvent, ApiKey, Application, Improvement, Job, Resume
 
 logger = logging.getLogger(__name__)
 
@@ -731,6 +731,57 @@ class Database:
                         ApiKey(provider=provider, ciphertext=ciphertext, updated_at=now)
                     )
             session.commit()
+
+    # -- Analytics (local-first, PII-free) ----------------------------------
+
+    async def record_analytics_event(
+        self, event_name: str, properties: dict[str, Any] | None = None
+    ) -> None:
+        """Insert one local analytics event row.
+
+        Privacy invariant: ``properties`` must contain ids and numeric metrics
+        only — never resume content, names, emails, or JD text. Callers should
+        go through ``app.services.analytics.emit_event`` so a failure here can
+        never break the request that triggered it.
+        """
+        async with self._session() as session:
+            session.add(
+                AnalyticsEvent(
+                    event_name=event_name,
+                    properties=properties or {},
+                    created_at=_now(),
+                )
+            )
+            await session.commit()
+
+    async def get_analytics_summary(self, days: int | None = None) -> dict[str, Any]:
+        """Return funnel counts + per-event totals over an optional day window.
+
+        ``days`` filters to events created in the last N days (lexical ISO-8601
+        comparison, matching the rest of the data layer). The funnel surfaces the
+        core uploads → tailors → downloads path.
+        """
+        async with self._session() as session:
+            stmt = select(AnalyticsEvent.event_name, func.count()).group_by(
+                AnalyticsEvent.event_name
+            )
+            if days is not None:
+                cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+                stmt = stmt.where(AnalyticsEvent.created_at >= cutoff)
+            result = await session.execute(stmt)
+            totals: dict[str, int] = {name: int(count) for name, count in result.all()}
+
+        funnel = {
+            "uploads": totals.get("resume_uploaded", 0),
+            "tailors": totals.get("tailor_completed", 0),
+            "downloads": totals.get("resume_pdf_downloaded", 0),
+        }
+        return {
+            "funnel": funnel,
+            "event_totals": totals,
+            "total_events": sum(totals.values()),
+            "days": days,
+        }
 
     # -- Stats / maintenance ------------------------------------------------
 
