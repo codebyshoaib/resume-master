@@ -1,4 +1,5 @@
 import type {
+  ATSScore,
   ImprovedResult,
   InterviewPrepData,
 } from '@/components/common/resume_previewer_context';
@@ -178,6 +179,19 @@ export async function previewImproveResume(
     job_id: jobId,
     prompt_id: promptId ?? null,
   });
+}
+
+/**
+ * Computes the baseline ("before") ATS score for the current, untailored
+ * resume against a job — no LLM tailoring runs. Returns the same ATSScore
+ * shape the tailor preview returns as the "after" score.
+ */
+export async function getAtsScore(resumeId: string, jobId: string): Promise<ATSScore> {
+  const res = await apiPost(`/resumes/${encodeURIComponent(resumeId)}/ats-score`, {
+    job_id: jobId,
+  });
+  if (!res.ok) throw new Error(`ATS score request failed with status ${res.status}`);
+  return (await res.json()) as ATSScore;
 }
 
 /** Confirms and saves a tailored resume */

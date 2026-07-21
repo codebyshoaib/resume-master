@@ -6,12 +6,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useResumePreview } from '@/components/common/resume_previewer_context';
-import type { ImprovedResult } from '@/components/common/resume_previewer_context';
+import type { ImprovedResult, ATSScore } from '@/components/common/resume_previewer_context';
 import type { ResumeData } from '@/components/dashboard/resume-component';
 import {
   uploadJobDescriptions,
   previewImproveResume,
   confirmImproveResume,
+  getAtsScore,
 } from '@/lib/api/resume';
 import { fetchPromptConfig, type PromptOption } from '@/lib/api/config';
 import { Dropdown } from '@/components/ui/dropdown';
@@ -19,7 +20,7 @@ import { useStatusCache } from '@/lib/context/status-cache';
 import { Loader2, ArrowLeft, AlertTriangle, Settings } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
 import { DiffPreviewModal } from '@/components/tailor/diff-preview-modal';
-import { ATSScoreCard } from '@/components/tailor/ats-score-card';
+import { ATSBeforeAfterCard } from '@/components/tailor/ats-before-after-card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function TailorPage() {
@@ -37,6 +38,7 @@ export default function TailorPage() {
   // Diff preview modal state
   const [showDiffModal, setShowDiffModal] = useState(false);
   const [pendingResult, setPendingResult] = useState<ImprovedResult | null>(null);
+  const [baselineAts, setBaselineAts] = useState<ATSScore | null>(null);
   const [diffConfirmError, setDiffConfirmError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
@@ -177,7 +179,16 @@ export default function TailorPage() {
       const jobId = await uploadJobDescriptions([description], resumeId);
       incrementJobs(); // Update cached counter
 
-      // 2. Preview Resume
+      // 2. Baseline "before" ATS score for the untailored resume (no LLM tailoring).
+      //    Best-effort — a failure here must not block the tailoring flow.
+      setBaselineAts(null);
+      try {
+        setBaselineAts(await getAtsScore(resumeId, jobId));
+      } catch (baselineErr) {
+        console.warn('Baseline ATS score failed; showing after-score only.', baselineErr);
+      }
+
+      // 3. Preview Resume (returns the "after" ATS score)
       const result = await previewImproveResume(resumeId, jobId, selectedPromptId);
 
       if (!result?.data?.diff_summary || !result?.data?.detailed_changes) {
@@ -457,10 +468,10 @@ export default function TailorPage() {
         </div>
       </div>
 
-      {/* ATS Score Breakdown — shown once a preview result is available */}
+      {/* Before → After ATS match — shown once a preview result is available */}
       {pendingResult?.data?.ats_score && (
         <div className="w-full max-w-4xl mt-6">
-          <ATSScoreCard atsScore={pendingResult.data.ats_score} />
+          <ATSBeforeAfterCard before={baselineAts} after={pendingResult.data.ats_score} />
         </div>
       )}
 
