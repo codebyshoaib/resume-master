@@ -2,16 +2,21 @@
 
 Two invariants this locks:
 1. JD-keyword incorporation is the DEFAULT across sections (the maintainer goal).
-2. The anti-fabrication clauses stay present. Per the truthfulness audit,
-   invented bullet *narrative* (e.g. "led 12 engineers") is NOT caught by
-   verify_diff_result (its metric regex misses bare counts) or verify_alignment
-   (which only checks skills/certs/companies) — so these prompt clauses are the
-   ONLY guard. If a future edit drops them, this test fails loudly.
+2. The retained anti-fabrication clauses stay present. The default tailoring
+   strategy ("full") now deliberately permits appending qualitative,
+   JD-relevant bullets and skills (surfaced in the preview for the candidate to
+   confirm). What must NEVER be invented — because it is the fabrication that
+   burns a candidate in an interview and is not caught downstream — is
+   *numeric* achievement (metrics, percentages, counts) and identity facts
+   (employers, job titles, dates). Those clauses are the ONLY guard against
+   fabricated numbers/narrative; if a future edit drops them, this test fails
+   loudly.
 """
 
 from app.prompts.templates import (
     COVER_LETTER_PROMPT,
     DIFF_IMPROVE_PROMPT,
+    DIFF_STRATEGY_INSTRUCTIONS,
     INTERVIEW_PREP_PROMPT,
 )
 from app.prompts.refinement import KEYWORD_INJECTION_PROMPT
@@ -32,10 +37,13 @@ class TestJdIncorporationIsDefault:
 
 class TestAntiFabricationClausesPresent:
     def test_diff_prompt_keeps_no_invented_work_clauses(self):
-        # rule 11's reframe permission must ship WITH its anti-fabrication clause
-        assert "Do NOT add new work, metrics, or responsibilities" in DIFF_IMPROVE_PROMPT
-        # rule 2 must remain
-        assert "Do not invent metrics or achievements not supported by the original resume" in DIFF_IMPROVE_PROMPT
+        # rule 2: no invented numbers (the guard that survives even under the
+        # aggressive default gap-filling strategy)
+        assert "Do not invent numeric metrics" in DIFF_IMPROVE_PROMPT
+        # rule 11's reframe permission must still ship with its no-invented-metrics clause
+        assert "do NOT invent numeric metrics" in DIFF_IMPROVE_PROMPT
+        # the aggressive "full" strategy must forbid inventing identity facts
+        assert "Do NOT invent numeric metrics, employers, job titles, dates" in DIFF_STRATEGY_INSTRUCTIONS["full"]
 
     def test_keyword_injection_keeps_no_invent_clauses(self):
         assert "do not invent new content, metrics, or work history" in KEYWORD_INJECTION_PROMPT

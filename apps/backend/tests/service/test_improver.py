@@ -199,7 +199,7 @@ class TestGenerateResumeDiffs:
 
     @patch("app.services.improver.complete_json", new_callable=AsyncMock)
     async def test_strategy_selection_full(self, mock_llm, sample_resume, sample_job_keywords):
-        """Full strategy should include 'targeted adjustments' instruction."""
+        """Full strategy should carry the aggressive gap-filling instruction."""
         mock_llm.return_value = {"changes": [], "strategy_notes": "test"}
         await generate_resume_diffs(
             original_resume="# Resume",
@@ -209,7 +209,9 @@ class TestGenerateResumeDiffs:
             original_resume_data=sample_resume,
         )
         prompt = mock_llm.call_args.kwargs.get("prompt") or mock_llm.call_args.args[0]
-        assert "targeted adjustments" in prompt.lower()
+        assert "aggressively" in prompt.lower()
+        # Full strategy explicitly permits appending new JD-relevant bullets.
+        assert "append" in prompt.lower()
 
 
 class TestSkillTargetPlanning:
@@ -285,10 +287,12 @@ class TestGenerateResumeDiffsEdgeCases:
             prompt_id="nonexistent_strategy",
             original_resume_data=sample_resume,
         )
-        # Should not raise — falls back to default (keywords)
+        # Should not raise — falls back to default ("full", the aggressive strategy)
         prompt = mock_llm.call_args.kwargs.get("prompt") or mock_llm.call_args.args[0]
-        # Default strategy is "keywords" which says "Weave in relevant keywords"
-        assert "weave" in prompt.lower() or "keywords" in prompt.lower()
+        # The "full" strategy instruction is distinctive: it tailors "aggressively".
+        # (This token does not appear elsewhere in the diff template, so it fails
+        # if the default is ever reverted to a conservative strategy.)
+        assert "aggressively" in prompt.lower()
 
     @patch("app.services.improver.complete_json", new_callable=AsyncMock)
     async def test_markdown_fallback_when_dates_lack_months(self, mock_llm, sample_job_keywords):

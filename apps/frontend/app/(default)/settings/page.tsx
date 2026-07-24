@@ -145,7 +145,7 @@ export default function SettingsPage() {
   const [featureConfigLoading, setFeatureConfigLoading] = useState(false);
   const [promptConfigLoading, setPromptConfigLoading] = useState(false);
   const [promptOptions, setPromptOptions] = useState<PromptOption[]>([]);
-  const [defaultPromptId, setDefaultPromptId] = useState('keywords');
+  const [defaultPromptId, setDefaultPromptId] = useState('full');
 
   // Custom feature prompts (cover letter, cold outreach). Empty string
   // means "use default"; the backend's *_default fields give us the
@@ -321,7 +321,7 @@ export default function SettingsPage() {
 
         if (promptConfig) {
           setPromptOptions(promptConfig.prompt_options || []);
-          setDefaultPromptId(promptConfig.default_prompt_id || 'keywords');
+          setDefaultPromptId(promptConfig.default_prompt_id || 'full');
         }
 
         if (featurePrompts) {

@@ -237,7 +237,7 @@ CRITICAL_TRUTHFULNESS_RULES = {
         "You may rephrase existing bullet points to include keywords, but do NOT add new bullet points"
     ),
     "full": _build_truthfulness_rules(
-        "You may expand existing bullet points or add new ones that elaborate on existing work, but DO NOT invent entirely new responsibilities"
+        "You may expand existing bullet points and add new ones describing job-relevant responsibilities the candidate plausibly performed in that role."
     ),
 }
 
@@ -356,7 +356,7 @@ IMPROVE_RESUME_PROMPTS = {
     "full": IMPROVE_RESUME_PROMPT_FULL,
 }
 
-DEFAULT_IMPROVE_PROMPT_ID = "keywords"
+DEFAULT_IMPROVE_PROMPT_ID = "full"
 
 # Backward-compatible alias
 IMPROVE_RESUME_PROMPT = IMPROVE_RESUME_PROMPT_FULL
@@ -485,7 +485,17 @@ RESUME_SCHEMA = RESUME_SCHEMA_EXAMPLE
 DIFF_STRATEGY_INSTRUCTIONS = {
     "nudge": "Make minimal edits. Only rephrase where there is a clear match. Do not add new bullet points.",
     "keywords": "Weave in relevant keywords where evidence already exists. You may rephrase bullets but do not add new ones.",
-    "full": "Make targeted adjustments. You may rephrase bullets, add verified JD skills, and add new bullets that elaborate on existing work, but do not invent new responsibilities.",
+    "full": (
+        "Tailor aggressively for this specific job. Rewrite the Headline, summary and rephrase MOST "
+        "work, project, and education bullets into the job description's terminology, "
+        "emphasis, and priorities. You SHOULD append new bullets (action \"append\") to "
+        "existing work and project entries that describe job-relevant responsibilities the "
+        "candidate plausibly performed in that role, and add job-description skills to the "
+        "skills list. In the \"reason\" for every appended bullet or added skill, state that "
+        "it is a suggested addition for the candidate to confirm. Do NOT invent numeric "
+        "metrics, employers, job titles, dates, degrees, or experience unrelated to the "
+        "candidate's real background."
+    ),
 }
 
 SKILL_TARGET_PLAN_PROMPT = """Build a concise skill target plan for tailoring this resume to the job.
@@ -527,16 +537,16 @@ DIFF_IMPROVE_PROMPT = """Given this resume and job description, output a JSON ob
 
 RULES:
 1. Only modify content; never change names, companies, dates, institutions, or degrees
-2. Do not invent metrics or achievements not supported by the original resume text
-3. Do not add new work entries, education entries, or project entries
+2. Do not invent numeric metrics, percentages, dollar amounts, timeframes, or quantified achievements that are not already in the original resume text
+3. Do not add new work entries, education entries, or project entries (you MAY append bullets to existing entries when rule 4 allows it)
 4. {strategy_instruction}
 5. Each change MUST include the original text (copied exactly) so it can be verified
 6. For each change, explain WHY it helps match the job description
 7. Generate all new text in {output_language}
 8. Do not use em dash characters
-9. Keep changes minimal and targeted; do not rewrite content that already aligns well
+9. Concentrate edits on content that is not yet aligned with the job description; you need not touch bullets that already use the job description's exact terminology. Let the number and depth of changes match the strategy in rule 4 (an aggressive strategy should touch most bullets and the summary; a minimal strategy should touch few).
 10. Exception to rule 2: you may add a skill only if it appears in the verified skill targets below
-11. By DEFAULT, scan the summary and every work, project, and education description for content that already demonstrates a job-description keyword or skill, and reframe that text using the job description's terminology where it is not already phrased that way (per rule 9, leave content that already aligns well), while preserving the candidate's actual accomplishment. Do NOT add new work, metrics, or responsibilities; only restate existing content in the JD's language, and verify every reframe stays factually accurate.
+11. By DEFAULT, scan the summary and every work, project, and education description for content that already demonstrates a job-description keyword or skill, and reframe that text using the job description's terminology where it is not already phrased that way (per rule 9, leave content that already aligns well), while preserving the candidate's actual accomplishment. When reframing, do NOT invent numeric metrics; restate existing content in the JD's language and verify every reframe stays factually accurate. (Adding new job-relevant bullets is a separate action governed by the strategy in rule 4.)
 12. Preserve original capitalization, especially for proper nouns, technical terms (e.g., REST, API, AWS), and acronyms. Do not change the casing of words that were capitalized in the original.
 13. Use plain action verbs. NEVER use inflated or AI-cliche verbs/buzzwords in any tense or form: spearhead, orchestrate, champion, synergize, leverage, revolutionize, pioneer, catalyze, operationalize, architect (as a verb), envision, facilitate, utilize, robust, scalable, holistic, impactful, proactive, cutting-edge, world-class, best-in-class, game-changing, disruptive, seamless, dynamic, results-driven, detail-oriented, team player. Use the plain equivalent (led, coordinated, used, built, helped).
 
