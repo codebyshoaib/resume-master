@@ -16,6 +16,7 @@ Literal JSON braces are doubled because services call ``.format()`` on these.
 _VOICE_RULES = """VOICE - the answer must read like a person typing, not a system reporting:
 1. NEVER mention sources, documents, resumes, "the provided information", or what you were given. You are the candidate recalling your own work from memory. A reader must not be able to tell any source material existed.
 1b. NEVER describe where something is written down. Phrases like "listed among my skills", "in my technical toolkit", "on my resume" or "I added X to my stack" describe a document, not work you did, and instantly read as machine-written. Talk about what you did, or do not raise the topic.
+1c. Do NOT summarise your career unless the question asks for a summary. Nobody asking a technical question wants a tour of your CV. Name the one relevant piece of experience in a clause, then get on with answering what was actually asked.
 2. NEVER hedge about your own evidence. Do not write "indicating", "suggesting", "it appears that", or "based on my background". You either did something or you did not.
 3. Put caveats and missing evidence ONLY in the "gaps" field. The answer field must never contain a sentence about what cannot be shown or described.
 4. Lead with the most specific concrete thing you actually did — a system, a number, a decision, a problem you hit. Specifics are what make an answer stand out; generalities read as filler.
@@ -24,11 +25,13 @@ _VOICE_RULES = """VOICE - the answer must read like a person typing, not a syste
 7. ASCII characters only. No em dashes, en dashes, curly quotes, or non-breaking hyphens — the answer gets pasted into web forms that mangle them. Use a plain hyphen and straight quotes."""
 
 _THIN_EVIDENCE_RULES = """WHEN YOUR EXPERIENCE IS THIN
-If the history only weakly supports the question (for example the skill appears in a list but no project describes using it), do NOT write a hedging paragraph about the absence. Write a short, confident, honest answer instead:
-- State plainly and briefly what your actual exposure was.
-- Spend most of the answer on the closest thing you have genuinely done, described concretely, and say why it transfers.
+If the history records only brief exposure to the subject, do NOT write a hedging paragraph about the absence, and do NOT pad with unrelated career summary. Do this instead:
+- State plainly and briefly what your actual exposure was. One or two clauses.
+- Then spend the bulk of the answer DEMONSTRATING that you understand the subject: what problem it solves, how it works, the trade-offs, what goes wrong in practice. This is category B knowledge and is not limited by your history.
+- If you have genuinely done something adjacent, describe it concretely and say why it transfers.
 - Close with one short forward-looking sentence if it fits naturally.
-Be specific about the things you DID do - vagueness there is what makes an answer forgettable. But never resolve thin evidence by inventing a project, employer, metric, or outcome: an honest specific answer beats a vague impressive-sounding one, because the impressive one collapses in the first technical follow-up."""
+
+Thin experience plus a strong, precise technical explanation is a good answer - it reads as someone who knows the subject and is straight about their exposure. Thin experience dressed up as deep experience is a bad answer, because the very next question exposes it. Never resolve thin evidence by inventing a project, employer, metric, or outcome."""
 
 CAREER_ANSWER_PROMPT = """You are the candidate below, answering a question on a job application form in your own words.
 
@@ -40,8 +43,17 @@ Each block is a piece of your history. The identifier after "SOURCE" is for inte
 QUESTION
 {question}
 
-GROUNDING RULES - NEVER VIOLATE:
-1. Every factual claim MUST be traceable to the history above. Record which pieces you drew on in "used_source_ids".
+WHAT THE QUESTION IS ASKING FOR
+Read the question and cover every part of it. Most technical questions have two halves - what you have DONE, and what you UNDERSTAND - and an answer that covers only one half fails. If the question asks about concepts, mechanics, trade-offs or "your understanding", you must actually explain them. Do not answer a "what do you understand about X" question with a summary of your work history: the reader is not asking to be pointed at your CV, they are asking you to demonstrate that you know the subject.
+
+TWO KINDS OF CONTENT - the grounding rules below apply to ONE of them:
+A. CLAIMS ABOUT YOU - employers, projects, dates, what you built, what you measured, what you were responsible for. These are STRICTLY limited to your history below. This is where fabrication is dangerous.
+B. GENERAL TECHNICAL KNOWLEDGE - what a technology is, how it works, what problem it solves, standard concepts, terminology, trade-offs, common pitfalls. This is public knowledge, NOT a claim about your career. Explain it fully and accurately from what you know, whether or not it appears in your history. Being vague here does not protect anyone; it just makes you look like you do not know the subject.
+
+So: ground the biography, explain the technology. Never blur them - do not turn a concept you can explain into a project you did, and never imply you built something in order to show that you understand it.
+
+GROUNDING RULES - apply to claims about you (category A), NEVER VIOLATE:
+1. Every factual claim about your own work MUST be traceable to the history above. Record which pieces you drew on in "used_source_ids".
 2. DO NOT invent employers, job titles, dates, team sizes, or numeric metrics. If a number is not in the history, do not state a number.
 3. DO NOT claim skills, tools, or technologies that do not appear in the history, and do not inflate a passing mention into deep expertise.
 4. NEVER invent a source identifier. Only identifiers shown above are valid, and only list ones you actually used.

@@ -206,7 +206,7 @@ class TestAnswerVoice:
         prompt = captured["prompt"]
         assert "WHEN YOUR EXPERIENCE IS THIN" in prompt
         # Thin evidence must not license invention.
-        assert "never resolve thin evidence by inventing" in prompt
+        assert "resolve thin evidence by inventing" in prompt.lower()
 
     async def test_prompt_still_forbids_fabrication(self, seeded):
         captured: dict[str, str] = {}
@@ -282,7 +282,7 @@ class TestListOnlySkillGuard:
 
     async def test_thin_evidence_rules_still_forbid_invention(self, list_only_corpus):
         prompt = await self._captured_prompt()
-        assert "never resolve thin evidence by inventing" in prompt
+        assert "resolve thin evidence by inventing" in prompt.lower()
 
     async def test_grounding_rules_are_numbered_contiguously(self, list_only_corpus):
         """The rules block was once mangled into 'identifier3. DO NOT...' by a
@@ -295,3 +295,66 @@ class TestListOnlySkillGuard:
             if line[:2].strip().rstrip(".").isdigit()
         ]
         assert numbers == list(range(1, len(numbers) + 1)), numbers
+
+
+class TestExplainVersusRecite:
+    """Regression: a question asking for conceptual understanding was answered
+    with a CV summary.
+
+    The original grounding rules limited *every* claim to the corpus, which also
+    banned the model from explaining the technology. So a question of the form
+    "share your experience and understanding of GraphQL's concepts" could only be
+    answered by reciting resume lines — the reader was effectively told to go
+    review the CV instead of getting the explanation they asked for.
+
+    General technical knowledge is not a claim about the candidate's career, so
+    it must be explicitly exempted from grounding while biography stays locked.
+    """
+
+    async def _prompt(self, question="Have you worked with GraphQL? Explain the concepts."):
+        captured: dict[str, str] = {}
+
+        async def capture(prompt, **kwargs):
+            captured["prompt"] = prompt
+            return {"answer": "a", "used_source_ids": [], "gaps": []}
+
+        with patch.object(career_service, "complete_json", new=capture):
+            await career_service.answer_career_question(question)
+        return captured["prompt"]
+
+    async def test_separates_personal_claims_from_general_knowledge(self, seeded):
+        prompt = await self._prompt()
+        assert "CLAIMS ABOUT YOU" in prompt
+        assert "GENERAL TECHNICAL KNOWLEDGE" in prompt
+        # The exemption is the whole point: explain the tech, ground the biography.
+        assert "NOT a claim about your career" in prompt
+        assert "ground the biography, explain the technology" in prompt
+
+    async def test_grounding_rules_are_scoped_to_personal_claims(self, seeded):
+        prompt = await self._prompt()
+        # Scoped, not blanket — otherwise explanation is banned again.
+        assert "GROUNDING RULES - apply to claims about you" in prompt
+        assert "factual claim about your own work MUST be traceable" in prompt
+
+    async def test_requires_covering_every_part_of_the_question(self, seeded):
+        prompt = await self._prompt()
+        assert "WHAT THE QUESTION IS ASKING FOR" in prompt
+        assert "you must actually explain them" in prompt
+
+    async def test_forbids_answering_a_concept_question_with_a_cv_tour(self, seeded):
+        prompt = await self._prompt()
+        assert "not asking to be pointed at your CV" in prompt
+        assert "Do NOT summarise your career unless the question asks" in prompt
+
+    async def test_thin_evidence_now_routes_to_explanation_not_hedging(self, seeded):
+        prompt = await self._prompt()
+        assert "DEMONSTRATING that you understand the subject" in prompt
+        # And still cannot be read as licence to invent.
+        assert "resolve thin evidence by inventing" in prompt.lower()
+
+    async def test_biography_guards_survive_the_exemption(self, seeded):
+        """The knowledge exemption must not have loosened the personal-claim rules."""
+        prompt = await self._prompt()
+        assert "DO NOT invent employers" in prompt
+        assert "A skill appearing in a LIST is not experience" in prompt
+        assert "never imply you built something in order to show that you understand it" in prompt
