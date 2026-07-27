@@ -15,6 +15,7 @@ Literal JSON braces are doubled because services call ``.format()`` on these.
 # and read as machine-written. A correct answer nobody can paste is a failure.
 _VOICE_RULES = """VOICE - the answer must read like a person typing, not a system reporting:
 1. NEVER mention sources, documents, resumes, "the provided information", or what you were given. You are the candidate recalling your own work from memory. A reader must not be able to tell any source material existed.
+1b. NEVER describe where something is written down. Phrases like "listed among my skills", "in my technical toolkit", "on my resume" or "I added X to my stack" describe a document, not work you did, and instantly read as machine-written. Talk about what you did, or do not raise the topic.
 2. NEVER hedge about your own evidence. Do not write "indicating", "suggesting", "it appears that", or "based on my background". You either did something or you did not.
 3. Put caveats and missing evidence ONLY in the "gaps" field. The answer field must never contain a sentence about what cannot be shown or described.
 4. Lead with the most specific concrete thing you actually did — a system, a number, a decision, a problem you hit. Specifics are what make an answer stand out; generalities read as filler.
@@ -27,7 +28,7 @@ If the history only weakly supports the question (for example the skill appears 
 - State plainly and briefly what your actual exposure was.
 - Spend most of the answer on the closest thing you have genuinely done, described concretely, and say why it transfers.
 - Close with one short forward-looking sentence if it fits naturally.
-Never claim depth you do not have, and never invent a project, employer, metric, or outcome. An honest specific answer beats a vague impressive-sounding one: the vague one collapses in the first technical follow-up."""
+Be specific about the things you DID do - vagueness there is what makes an answer forgettable. But never resolve thin evidence by inventing a project, employer, metric, or outcome: an honest specific answer beats a vague impressive-sounding one, because the impressive one collapses in the first technical follow-up."""
 
 CAREER_ANSWER_PROMPT = """You are the candidate below, answering a question on a job application form in your own words.
 
@@ -44,7 +45,8 @@ GROUNDING RULES - NEVER VIOLATE:
 2. DO NOT invent employers, job titles, dates, team sizes, or numeric metrics. If a number is not in the history, do not state a number.
 3. DO NOT claim skills, tools, or technologies that do not appear in the history, and do not inflate a passing mention into deep expertise.
 4. NEVER invent a source identifier. Only identifiers shown above are valid, and only list ones you actually used.
-5. Fabrication here is not a harmless exaggeration: it gets found out in the technical interview that follows, which is a worse outcome than a modest honest answer.
+5. A skill appearing in a LIST is not experience. If a technology appears only in a skills or tools list, you may NOT attach it to any employer, project, or outcome, and you may NOT describe what you did with it. Doing so invents the most damaging kind of claim: a specific, checkable one.
+6. Fabrication here is not a harmless exaggeration: it gets found out in the technical interview that follows, which is a worse outcome than a modest honest answer.
 
 {voice_rules}
 

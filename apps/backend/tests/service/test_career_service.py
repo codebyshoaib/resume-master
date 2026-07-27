@@ -206,7 +206,7 @@ class TestAnswerVoice:
         prompt = captured["prompt"]
         assert "WHEN YOUR EXPERIENCE IS THIN" in prompt
         # Thin evidence must not license invention.
-        assert "never invent a project" in prompt.lower()
+        assert "never resolve thin evidence by inventing" in prompt
 
     async def test_prompt_still_forbids_fabrication(self, seeded):
         captured: dict[str, str] = {}
@@ -220,3 +220,78 @@ class TestAnswerVoice:
         prompt = captured["prompt"]
         assert "DO NOT invent employers" in prompt
         assert "do not inflate a passing mention into deep expertise" in prompt
+
+
+class TestListOnlySkillGuard:
+    """Regression: a skill that appears only in a list must not acquire a story.
+
+    The real failure: a resume listed "Databases: ... MongoDB, Firebase, GraphQL"
+    and separately had a real employer (DTS, MERN stack). The model welded them
+    together and produced "I used GraphQL at DTS to replace over-fetching REST
+    endpoints" — a specific, checkable, entirely invented claim. That is the
+    worst possible failure mode for this feature, so the prompt must forbid it
+    explicitly rather than relying on the general no-fabrication rule.
+    """
+
+    @pytest.fixture
+    async def list_only_corpus(self, db):
+        resume = await db.create_resume(
+            content="",
+            processed_data={
+                "skills": ["Databases: PostgreSQL, MongoDB, Firebase, GraphQL"],
+                "workExperience": [
+                    {
+                        "title": "Junior Web Engineer",
+                        "company": "DTS",
+                        "years": "Jan 2025 - Mar 2025",
+                        "description": ["Full-stack features on the MERN stack."],
+                    }
+                ],
+            },
+        )
+        await db.set_master_resume(resume["resume_id"])
+        return db
+
+    async def _captured_prompt(self, question="Have you worked with GraphQL?"):
+        captured: dict[str, str] = {}
+
+        async def capture(prompt, **kwargs):
+            captured["prompt"] = prompt
+            return {"answer": "a", "used_source_ids": [], "gaps": []}
+
+        with patch.object(career_service, "complete_json", new=capture):
+            await career_service.answer_career_question(question)
+        return captured["prompt"]
+
+    async def test_prompt_forbids_attaching_a_listed_skill_to_an_employer(
+        self, list_only_corpus
+    ):
+        prompt = await self._captured_prompt()
+        assert "A skill appearing in a LIST is not experience" in prompt
+        assert "may NOT attach it to any employer" in prompt
+
+    async def test_prompt_forbids_narrating_where_a_skill_is_written(self, list_only_corpus):
+        prompt = await self._captured_prompt()
+        # Kills "I added GraphQL to my technical toolkit, listed among my skills".
+        assert "NEVER describe where something is written down" in prompt
+        assert "listed among my skills" in prompt
+
+    async def test_prompt_retains_the_invented_employer_guard(self, list_only_corpus):
+        prompt = await self._captured_prompt()
+        assert "DO NOT invent employers" in prompt
+
+    async def test_thin_evidence_rules_still_forbid_invention(self, list_only_corpus):
+        prompt = await self._captured_prompt()
+        assert "never resolve thin evidence by inventing" in prompt
+
+    async def test_grounding_rules_are_numbered_contiguously(self, list_only_corpus):
+        """The rules block was once mangled into 'identifier3. DO NOT...' by a
+        hand edit, fusing two rules and breaking the numbering."""
+        prompt = await self._captured_prompt()
+        block = prompt.split("GROUNDING RULES")[1].split("VOICE")[0]
+        numbers = [
+            int(line.split(".", 1)[0])
+            for line in block.splitlines()
+            if line[:2].strip().rstrip(".").isdigit()
+        ]
+        assert numbers == list(range(1, len(numbers) + 1)), numbers
