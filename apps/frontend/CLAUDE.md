@@ -37,7 +37,8 @@ components/
   ui/                # primitives: button, input, textarea, dialog, dropdown,
                      #   card, retro-tabs, toggle-switch, confirm-dialog,
                      #   rich-text-editor (Tiptap), link-dialog, label
-  builder/           # builder page UI + forms/ (per-section form components)
+  builder/           # builder page UI + forms/ (per-section form components),
+                     #   jd-comparison-view, jd-gap-panel, gap-fix-dialog (JD match)
   dashboard/         # resume list/card, upload dialog
   tailor/            # diff-preview-modal
   career/            # career-documents (list/upload/mute), career-answer
@@ -60,7 +61,8 @@ lib/
   types/             # template-settings, lucide.d.ts
   config/version.ts  # APP_VERSION / codename
   constants/page-dimensions.ts
-hooks/               # use-file-upload, use-regenerate-wizard, use-enrichment-wizard
+hooks/               # use-file-upload, use-regenerate-wizard, use-enrichment-wizard,
+                     #   use-jd-match (semantic JD match + gap fix)
 i18n/config.ts       # locale list + names/flags (NOTE: distinct from lib/i18n)
 messages/            # en/es/zh/ja/pt-BR JSON (see i18n)
 tests/               # vitest (see Testing)
@@ -75,7 +77,8 @@ All backend calls go through **`lib/api/`** — never call `fetch` to the backen
 - `lib/api/client.ts` — single source of truth. Exports `apiFetch / apiPost / apiPatch / apiPut / apiDelete`, `API_URL`, `API_BASE`, `getUploadUrl()`, plus `extractDetail` / `asJson` (FastAPI error-detail coercion — shared, do not re-implement per client).
   - Base URL: `NEXT_PUBLIC_API_URL` (default `'/'`) → `API_BASE` becomes `/api/v1`. On the **server** a `/`-relative base is rewritten to `http://127.0.0.1:8000/api/v1` (`INTERNAL_API_ORIGIN`); browser uses the relative path (proxied by `next.config.ts` rewrites to `BACKEND_ORIGIN`).
   - Default request timeout **240_000ms** (matches backend `wait_for` hard limit). `AbortError` → friendly "Request timed out" message.
-- `lib/api/resume.ts` — resumes/jobs: upload, improve / improve.preview / improve.confirm, fetch, list, update (PATCH), PDF URLs + blob download, delete, cover-letter / outreach generate+update, rename, retry-processing, fetch JD.
+- `lib/api/resume.ts` — resumes/jobs: upload, improve / improve.preview / improve.confirm, fetch, list, update (PATCH), PDF URLs + blob download, delete, cover-letter / outreach generate+update, rename, retry-processing, fetch JD,
+  `fetchJdMatch` / `closeJdMatchGaps` (semantic JD match; see [jd-match.md](../../docs/agent/features/jd-match.md)).
 - `lib/api/config.ts` — LLM config, `testLlmConnection`, system `/status`, feature flags, prompt config, **feature prompts** (`FeaturePromptsError` for 422 `missing_placeholders`), **per-provider API-key management** (each provider's key persists independently — switching the active provider no longer wipes another's; stored encrypted server-side), language config, `resetDatabase`. `PROVIDER_INFO` lists supported providers + default models.
 - `lib/api/enrichment.ts` — AI enrichment (analyze/enhance/apply) and AI regenerate (regenerate/apply-regenerated).
 - `lib/api/career.ts` — career corpus: document CRUD, multipart upload (raw `fetch`, since `FormData` must set its own boundary), `answerCareerQuestion`, `fetchCareerContextStats`. See [career-corpus.md](../../docs/agent/features/career-corpus.md).
@@ -197,7 +200,7 @@ Specs (`tests/`):
 - **i18n** — `i18n-utils.test.ts` (`getNestedValue` dot-path + `applyParams` substitution), `i18n-locale-parity.test.ts` (every `messages/*.json` must structurally match `en.json` — the in-suite guard for the build break).
 - **lib/utils** — `keyword-matcher.test.ts`, `section-helpers.test.ts`, `html-sanitizer.test.ts` (XSS whitelist), `download-utils.test.ts`.
 - **lib/api** — `api-client.test.ts` (URL resolution, timeout/AbortError; `fetch` stubbed).
-- **components** — `diff-preview-modal.test.tsx`, `regenerate-wizard.test.tsx`.
+- **components** — `diff-preview-modal.test.tsx`, `regenerate-wizard.test.tsx`, `jd-gap-panel.test.tsx`.
 
 Pure logic (i18n, utils, api) is tested directly with stubbed `fetch`/`t`; component specs render via Testing Library. The locale-parity spec mirrors `scripts/check_locale_parity.py` (which the pre-push hook also runs without Node). The local `pre-push` gate runs this vitest suite too when Node is available — `git config core.hooksPath .githooks`; see [`.githooks/README.md`](../../.githooks/README.md).
 

@@ -27,6 +27,7 @@ from app.prompts.career import build_career_answer_prompt
 # injection surface than a single resume upload was. Reusing the tailoring
 # pipeline's sanitiser rather than writing a second one that can drift.
 from app.services.improver import _sanitize_user_input as sanitize_user_input
+from app.services.text_normalize import plain_ascii
 
 logger = logging.getLogger(__name__)
 
@@ -71,34 +72,10 @@ def _master_resume_text(resume: dict[str, Any]) -> str:
     return resume.get("original_markdown") or ""
 
 
-# Typographic characters models emit freely but web form fields mangle, and which
-# read as machine-written when they survive. The answer is going to be pasted
-# into someone else's textarea, so normalise before it ever reaches the client.
-_TYPOGRAPHY = {
-    "—": "-",  # em dash
-    "–": "-",  # en dash
-    "‑": "-",  # non-breaking hyphen
-    "‒": "-",  # figure dash
-    "‘": "'",
-    "’": "'",
-    "‚": "'",
-    "“": '"',
-    "”": '"',
-    "…": "...",
-    " ": " ",  # non-breaking space
-    "​": "",  # zero-width space
-}
-
-
-def _plain_ascii(text: str) -> str:
-    """Replace typography that breaks paste-into-a-form with ASCII equivalents.
-
-    Only substitutes known offenders; any other non-ASCII (accented names,
-    non-Latin scripts for a non-English content language) is left intact.
-    """
-    for fancy, plain in _TYPOGRAPHY.items():
-        text = text.replace(fancy, plain)
-    return text
+# The answer gets pasted into someone else's textarea, so typography models emit
+# freely is normalised before it ever reaches the client. The table is shared with
+# the gap-closing path, which writes into the resume itself (see text_normalize).
+_plain_ascii = plain_ascii
 
 
 def _render(source: CareerSource, body: str) -> str:

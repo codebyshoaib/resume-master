@@ -436,3 +436,76 @@ export async function fetchJobDescription(
   }
   return res.json();
 }
+
+/** How one JD requirement is evidenced by the resume (mirrors RequirementCoverage). */
+export interface RequirementCoverage {
+  requirement: string;
+  kind: 'required' | 'preferred' | 'responsibility' | 'experience' | 'education';
+  status: 'covered' | 'partial' | 'missing';
+  evidence: string;
+  gap_note: string;
+}
+
+/** Semantic JD match result (mirrors backend JdMatchResponse). */
+export interface JdMatchResult {
+  score: number;
+  coverage: RequirementCoverage[];
+  highlight_keywords: string[];
+  cached: boolean;
+  truncated: boolean;
+}
+
+/**
+ * Fetches the semantic JD match for a tailored resume.
+ *
+ * Costs one LLM call on a cold cache, then free until the resume or JD changes.
+ * Pass `refresh` to force a re-grade.
+ */
+export async function fetchJdMatch(resumeId: string, refresh = false): Promise<JdMatchResult> {
+  const query = refresh ? '?refresh=true' : '';
+  const res = await apiFetch(
+    `/resumes/${encodeURIComponent(normalizeResumeId(resumeId))}/jd-match${query}`
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to load JD match (status ${res.status}): ${text}`);
+  }
+  return (await res.json()) as JdMatchResult;
+}
+
+/** A single proposed gap-closing change (mirrors backend ResumeChange). */
+export interface GapChange {
+  path: string;
+  action: 'replace' | 'append' | 'reorder' | 'add_skill';
+  original: string | string[] | null;
+  value: string | string[];
+  reason: string;
+}
+
+/** Proposed (unsaved) gap-closing result (mirrors backend CloseGapsResponse). */
+export interface CloseGapsResult {
+  proposed_data: ResumeData;
+  changes: GapChange[];
+  closed_requirements: string[];
+  rejected_count: number;
+  warnings: string[];
+}
+
+/**
+ * Asks the backend for changes that close this resume's open JD requirements.
+ *
+ * Nothing is saved server-side: the caller reviews `changes` and persists via
+ * `updateResume` if accepted.
+ */
+export async function closeJdMatchGaps(resumeId: string): Promise<CloseGapsResult> {
+  const res = await apiPost(
+    `/resumes/${encodeURIComponent(normalizeResumeId(resumeId))}/close-gaps`,
+    {},
+    DEFAULT_TIMEOUT_MS
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to improve match (status ${res.status}): ${text}`);
+  }
+  return (await res.json()) as CloseGapsResult;
+}

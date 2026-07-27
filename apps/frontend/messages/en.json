@@ -268,18 +268,45 @@
       "highlightedKeywordsDescriptionPrefix": "Words highlighted in",
       "highlightColor": "yellow",
       "highlightedKeywordsDescriptionSuffix": "appear in both the job description and your resume. A higher match rate suggests better alignment with the job requirements.",
-      "tipsTitle": "Tips",
-      "tips": {
-        "items": {
-          "addMissingKeywords": "Use the Resume tab to add missing keywords",
-          "focusTechnicalSkills": "Focus on technical skills and tools mentioned in the JD",
-          "matchActionVerbs": "Match action verbs from the job requirements"
-        }
-      },
       "stats": {
         "keywordsExtracted": "{count} keywords extracted",
         "matchesFound": "{count} matches found",
-        "matchRateLabel": "Match Rate:"
+        "matchRateLabel": "Match Rate:",
+        "keywordRateLabel": "Keyword hits:"
+      },
+      "analyzing": "Grading requirements...",
+      "analysisFailed": "Could not analyze the match",
+      "reanalyze": "Re-analyze",
+      "semanticScoreLabel": "Match score",
+      "semanticScoreExplainer": "{open} of {total} job requirements still need work. Scored by meaning, not word overlap.",
+      "truncatedNotice": "This posting listed more requirements than were graded; the longest tail was skipped.",
+      "improveMatch": "Improve match",
+      "improving": "Closing gaps...",
+      "allCovered": "Every requirement is covered.",
+      "status": {
+        "covered": "Covered",
+        "partial": "Partial",
+        "missing": "Missing"
+      },
+      "kind": {
+        "required": "required",
+        "preferred": "preferred",
+        "responsibility": "responsibility",
+        "experience": "experience",
+        "education": "education"
+      },
+      "gapFix": {
+        "title": "Review suggested additions",
+        "subtitle": "{count} change(s) proposed. Nothing is saved until you apply.",
+        "noChanges": "No usable changes were produced for these gaps.",
+        "apply": "Apply changes",
+        "applied": "Changes applied and saved.",
+        "applyFailed": "Could not save the changes.",
+        "requestFailed": "Could not generate improvements. Please try again.",
+        "action": {
+          "skill": "Add skill",
+          "bullet": "Add bullet"
+        }
       }
     },
     "genericItemForm": {

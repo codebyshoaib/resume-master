@@ -268,18 +268,45 @@
       "highlightColor": "黄色",
       "highlightedKeywordsDescriptionSuffix": "的词同时出现在职位描述与简历中。匹配度越高，通常意味着与岗位要求的契合度更好。",
       "highlightedKeywordsDescriptionTemplate": "被标记为__COLOR__的词同时出现在职位描述与简历中。匹配度越高，通常意味着与岗位要求的契合度更好。",
-      "tipsTitle": "提示",
-      "tips": {
-        "items": {
-          "addMissingKeywords": "在“简历”标签页补充缺失的关键词",
-          "focusTechnicalSkills": "重点关注 JD 中提到的技术技能与工具",
-          "matchActionVerbs": "对齐岗位要求中的行动动词"
-        }
-      },
       "stats": {
         "keywordsExtracted": "已提取 {count} 个关键词",
         "matchesFound": "已匹配 {count} 处",
-        "matchRateLabel": "匹配率："
+        "matchRateLabel": "匹配率：",
+        "keywordRateLabel": "关键词命中："
+      },
+      "analyzing": "正在评估要求...",
+      "analysisFailed": "无法分析匹配度",
+      "reanalyze": "重新分析",
+      "semanticScoreLabel": "匹配得分",
+      "semanticScoreExplainer": "{total} 项职位要求中仍有 {open} 项需要完善。按语义评分，而非字词重合。",
+      "truncatedNotice": "该职位列出的要求超过了评估数量，末尾部分已跳过。",
+      "improveMatch": "提升匹配度",
+      "improving": "正在填补差距...",
+      "allCovered": "所有要求均已覆盖。",
+      "status": {
+        "covered": "已覆盖",
+        "partial": "部分覆盖",
+        "missing": "缺失"
+      },
+      "kind": {
+        "required": "必需",
+        "preferred": "优先",
+        "responsibility": "职责",
+        "experience": "经验",
+        "education": "学历"
+      },
+      "gapFix": {
+        "title": "审阅建议的新增内容",
+        "subtitle": "已提出 {count} 项更改。应用前不会保存任何内容。",
+        "noChanges": "未针对这些差距生成可用的更改。",
+        "apply": "应用更改",
+        "applied": "更改已应用并保存。",
+        "applyFailed": "无法保存更改。",
+        "requestFailed": "无法生成改进建议，请重试。",
+        "action": {
+          "skill": "添加技能",
+          "bullet": "添加要点"
+        }
       }
     },
     "genericItemForm": {

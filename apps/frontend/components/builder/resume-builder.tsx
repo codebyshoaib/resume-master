@@ -44,9 +44,13 @@ import {
   generateOutreachMessage,
   generateInterviewPrep,
   fetchJobDescription,
+  type CloseGapsResult,
 } from '@/lib/api/resume';
 import { JDComparisonView } from './jd-comparison-view';
+import { JdGapPanel } from './jd-gap-panel';
+import { GapFixDialog } from './gap-fix-dialog';
 import { RegenerateWizard } from './regenerate-wizard';
+import { useJdMatch } from '@/hooks/use-jd-match';
 import { useRegenerateWizard } from '@/hooks/use-regenerate-wizard';
 import { useTranslations } from '@/lib/i18n';
 import { type TemplateSettings, DEFAULT_TEMPLATE_SETTINGS } from '@/lib/types/template-settings';
@@ -176,6 +180,15 @@ const ResumeBuilderContent = () => {
   // JD comparison state
   const [jobDescription, setJobDescription] = useState<string | null>(null);
   const [jobContextStatus, setJobContextStatus] = useState<JobContextStatus>('idle');
+
+  // Semantic JD match. Gated on the tab being open so the LLM call only happens
+  // when the user actually looks at the match, not on every builder load.
+  const jdMatch = useJdMatch(
+    resumeId,
+    activeTab === 'jd-match' && isTailoredResume && jobContextStatus === 'available'
+  );
+  const [gapFix, setGapFix] = useState<CloseGapsResult | null>(null);
+  const [isApplyingGapFix, setIsApplyingGapFix] = useState(false);
 
   // AI Regenerate wizard
   const regenerateWizard = useRegenerateWizard({
@@ -465,6 +478,44 @@ const ResumeBuilderContent = () => {
     setResumeData(lastSavedData);
     setHasUnsavedChanges(false);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(lastSavedData));
+  };
+
+  /** Ask the backend for gap-closing changes and open the review dialog. */
+  const handleImproveMatch = async () => {
+    const result = await jdMatch.requestGapFix();
+    if (!result) {
+      showNotification(t('builder.jdMatch.gapFix.requestFailed'), 'danger');
+      return;
+    }
+    setGapFix(result);
+  };
+
+  /**
+   * Persist the reviewed gap-closing changes.
+   *
+   * The backend proposed without saving, so this is the write. Re-grading after
+   * the save is explicit: the cache is keyed on resume content, so the stale
+   * score would otherwise sit there until the tab is remounted.
+   */
+  const handleApplyGapFix = async () => {
+    if (!resumeId || !gapFix) return;
+    try {
+      setIsApplyingGapFix(true);
+      const updated = await updateResume(resumeId, gapFix.proposed_data);
+      const nextData = (updated.processed_resume || gapFix.proposed_data) as ResumeData;
+      setResumeData(nextData);
+      setLastSavedData(nextData);
+      setHasUnsavedChanges(false);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData));
+      setGapFix(null);
+      showNotification(t('builder.jdMatch.gapFix.applied'), 'success');
+      await jdMatch.reanalyze();
+    } catch (error) {
+      console.error('Failed to apply gap fix:', error);
+      showNotification(t('builder.jdMatch.gapFix.applyFailed'), 'danger');
+    } finally {
+      setIsApplyingGapFix(false);
+    }
   };
 
   const getCompanyFromTitle = (title: string | null | undefined): string | null => {
@@ -970,16 +1021,15 @@ const ResumeBuilderContent = () => {
                     </p>
                   </div>
 
-                  <div className="border-2 border-black bg-white p-4">
-                    <h3 className="font-mono text-sm font-bold uppercase mb-2">
-                      {t('builder.jdMatch.tipsTitle')}
-                    </h3>
-                    <ul className="text-sm text-ink-soft space-y-1 list-disc list-inside">
-                      <li>{t('builder.jdMatch.tips.items.addMissingKeywords')}</li>
-                      <li>{t('builder.jdMatch.tips.items.focusTechnicalSkills')}</li>
-                      <li>{t('builder.jdMatch.tips.items.matchActionVerbs')}</li>
-                    </ul>
-                  </div>
+                  {/* Live, resume-specific gaps replaced the static tip list. */}
+                  <JdGapPanel
+                    match={jdMatch.match}
+                    status={jdMatch.status}
+                    error={jdMatch.error}
+                    isFixing={jdMatch.isFixing}
+                    onReanalyze={() => void jdMatch.reanalyze()}
+                    onImproveMatch={handleImproveMatch}
+                  />
                 </div>
               )}
             </div>
@@ -1077,7 +1127,12 @@ const ResumeBuilderContent = () => {
 
               {/* JD Match Comparison */}
               {activeTab === 'jd-match' && jobDescription && (
-                <JDComparisonView jobDescription={jobDescription} resumeData={resumeData} />
+                <JDComparisonView
+                  jobDescription={jobDescription}
+                  resumeData={resumeData}
+                  semanticScore={jdMatch.match?.score ?? null}
+                  highlightTerms={jdMatch.match?.highlight_keywords}
+                />
               )}
             </div>
           </div>
@@ -1163,6 +1218,14 @@ const ResumeBuilderContent = () => {
         onAccept={regenerateWizard.acceptChanges}
         onReject={regenerateWizard.rejectAndRegenerate}
         onClose={regenerateWizard.reset}
+      />
+
+      <GapFixDialog
+        isOpen={gapFix !== null}
+        result={gapFix}
+        isApplying={isApplyingGapFix}
+        onClose={() => setGapFix(null)}
+        onApply={handleApplyGapFix}
       />
     </div>
   );

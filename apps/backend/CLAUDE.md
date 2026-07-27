@@ -18,6 +18,7 @@ Stack: FastAPI 0.128 · Python **3.13+** · Pydantic v2 / pydantic-settings · S
 | Database | Async SQLAlchemy/SQLite facade; tables `resumes`/`jobs`/`improvements`/`applications`/`career_documents`/`analytics_events`/`api_keys`; returns plain dicts; global `db` singleton | `app/database.py`, `app/models.py`, `app/db_engine.py` |
 | Tracker | Kanban application-tracker endpoints | `app/routers/applications.py`, `app/schemas/applications.py` |
 | Career corpus | Career document store + grounded form answers (**no RAG** — see the feature doc) | `app/routers/career.py`, `app/services/career.py`, `app/prompts/career.py`, `app/schemas/career.py` |
+| JD match | Semantic requirement coverage + targeted gap closing (score computed locally, not by the LLM) | `app/services/jd_match.py`, `app/prompts/jd_match.py` |
 | Uploads | Shared upload validation/extraction for resumes **and** career documents | `app/routers/_uploads.py` |
 | LLM | LiteLLM wrapper: Router, retries, JSON extraction, timeouts, provider quirks | `app/llm.py` |
 | PDF | Headless Chromium render of frontend `/print/*` pages; lazy browser init | `app/pdf.py` |
@@ -31,7 +32,7 @@ Stack: FastAPI 0.128 · Python **3.13+** · Pydantic v2 / pydantic-settings · S
 ### Routers (all prefixed `/api/v1`)
 - `health.py` — `GET /health` (liveness, no LLM call), `GET /status` (LLM health + DB stats).
 - `config.py` — `/config/llm-api-key` (GET/PUT), `/config/llm-test` (POST live health check), `/config/features`, `/config/language`, `/config/prompts`, `/config/feature-prompts`, `/config/api-keys` (per-provider CRUD), `/config/reset` (POST; confirmation token `{"confirm": "RESET_ALL_DATA"}` in the JSON **body**, not a query param).
-- `resumes.py` — the biggest router: `/resumes/upload`, `GET /resumes`, `/resumes/list`, `/resumes/improve` + `/improve/preview` + `/improve/confirm`, `PATCH /resumes/{id}`, `/{id}/pdf`, `/{id}/retry-processing`, `GET /{id}/ats-lint` (deterministic ATS parseability findings), cover-letter/outreach/title PATCH + on-demand generate, `/{id}/job-description`, `/{id}/cover-letter/pdf`.
+- `resumes.py` — the biggest router: `/resumes/upload`, `GET /resumes`, `/resumes/list`, `/resumes/improve` + `/improve/preview` + `/improve/confirm`, `PATCH /resumes/{id}`, `/{id}/pdf`, `/{id}/retry-processing`, `GET /{id}/ats-lint` (deterministic ATS parseability findings), cover-letter/outreach/title PATCH + on-demand generate, `/{id}/job-description`, `GET /{id}/jd-match` (semantic requirement coverage, cached on the job by resume+JD hash), `POST /{id}/close-gaps` (proposes gap-closing changes; **saves nothing** — the client PATCHes), `/{id}/cover-letter/pdf`. The three JD-linked endpoints share `_resolve_resume_and_job`.
 - `jobs.py` — `/jobs/upload` (batch JD text → job_ids), `GET /jobs/{id}`.
 - `career.py` — career corpus: `/career/documents` CRUD + `/documents/upload`, `POST /career/answer` (grounded form answers with citations), `GET /career/context/stats`. Phases 1–2 of [`career-corpus.md`](../../docs/agent/features/career-corpus.md); phases 3–5 (facts, ladder, tailoring integration) are specified but not built.
 - `enrichment.py` — `/enrichment/analyze/{id}`, `/enhance`, `/apply/{id}`, `/regenerate`, `/apply-regenerated/{id}`.
@@ -43,6 +44,8 @@ Stack: FastAPI 0.128 · Python **3.13+** · Pydantic v2 / pydantic-settings · S
 - `cover_letter.py` — `generate_cover_letter`, `generate_outreach_message`, `generate_resume_title`; resolves custom-vs-default feature prompts at runtime.
 - `career.py` — `build_career_context` (assembles the corpus; the master resume is read **live** from `resumes`, never copied, so there is nothing to sync), `answer_career_question` (**drops citation ids the model invents**; empty corpus raises before the LLM is called), `context_stats`.
 - `ats_lint.py` — **pure, no-LLM** `lint_resume(resume) -> list[LintFinding]`: deterministic ATS-parseability checks over parsed `ResumeData` (missing contact, inconsistent date precision, absent core sections, non-descriptive custom-section titles, summary length, non-ASCII bullet punctuation, over-long bullets).
+- `jd_match.py` — semantic JD match: `build_requirements` (extractor fields → ordered graded list; the loose `keywords` field is excluded), `analyze_jd_match` (one LLM call grading each requirement `covered`/`partial`/`missing` with a quoted evidence span), `score_coverage` (**the % is computed locally, never asked of the model**; `required` weighted 2x, `partial` = half credit), `close_match_gaps` (targeted `add_skill`/`append` changes through `apply_diffs`, nothing persisted). See [`jd-match.md`](../../docs/agent/features/jd-match.md).
+- `text_normalize.py` — `plain_ascii` / `plain_ascii_deep`: shared typography scrub (em/en dash, non-breaking hyphen, curly quotes, zero-width space). Used by career answers **and** gap-closing bullets, since `ats_lint` flags non-ASCII bullet punctuation. Leaves legitimate non-ASCII (accented names, non-Latin scripts) intact.
 
 ---
 

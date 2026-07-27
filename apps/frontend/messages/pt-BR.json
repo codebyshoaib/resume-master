@@ -268,18 +268,45 @@
       "highlightedKeywordsDescriptionPrefix": "Palavras destacadas em",
       "highlightColor": "amarelo",
       "highlightedKeywordsDescriptionSuffix": "aparecem tanto na descrição da vaga quanto no seu currículo. Uma taxa de correspondência maior sugere melhor alinhamento com os requisitos da vaga.",
-      "tipsTitle": "Dicas",
-      "tips": {
-        "items": {
-          "addMissingKeywords": "Use a aba Currículo para adicionar palavras-chave ausentes",
-          "focusTechnicalSkills": "Foque em habilidades técnicas e ferramentas mencionadas na vaga",
-          "matchActionVerbs": "Combine verbos de ação dos requisitos da vaga"
-        }
-      },
       "stats": {
         "keywordsExtracted": "{count} palavras-chave extraídas",
         "matchesFound": "{count} correspondências encontradas",
-        "matchRateLabel": "Taxa de Correspondência:"
+        "matchRateLabel": "Taxa de Correspondência:",
+        "keywordRateLabel": "Palavras-chave:"
+      },
+      "analyzing": "Avaliando requisitos...",
+      "analysisFailed": "Não foi possível analisar a correspondência",
+      "reanalyze": "Analisar novamente",
+      "semanticScoreLabel": "Pontuação de correspondência",
+      "semanticScoreExplainer": "{open} de {total} requisitos da vaga ainda precisam de atenção. Avaliado por significado, não por coincidência de palavras.",
+      "truncatedNotice": "Esta vaga listou mais requisitos do que foram avaliados; o final foi ignorado.",
+      "improveMatch": "Melhorar correspondência",
+      "improving": "Fechando lacunas...",
+      "allCovered": "Todos os requisitos estão cobertos.",
+      "status": {
+        "covered": "Coberto",
+        "partial": "Parcial",
+        "missing": "Ausente"
+      },
+      "kind": {
+        "required": "obrigatório",
+        "preferred": "desejável",
+        "responsibility": "responsabilidade",
+        "experience": "experiência",
+        "education": "formação"
+      },
+      "gapFix": {
+        "title": "Revisar adições sugeridas",
+        "subtitle": "{count} alteração(ões) propostas. Nada é salvo até você aplicar.",
+        "noChanges": "Nenhuma alteração útil foi gerada para essas lacunas.",
+        "apply": "Aplicar alterações",
+        "applied": "Alterações aplicadas e salvas.",
+        "applyFailed": "Não foi possível salvar as alterações.",
+        "requestFailed": "Não foi possível gerar melhorias. Tente novamente.",
+        "action": {
+          "skill": "Adicionar habilidade",
+          "bullet": "Adicionar tópico"
+        }
       }
     },
     "genericItemForm": {

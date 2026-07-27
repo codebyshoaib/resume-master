@@ -268,18 +268,45 @@
       "highlightedKeywordsDescriptionPrefix": "Les mots surlignés en",
       "highlightColor": "jaune",
       "highlightedKeywordsDescriptionSuffix": "apparaissent à la fois dans la fiche de poste et dans votre CV. Un taux de correspondance plus élevé suggère une meilleure adéquation avec les exigences du poste.",
-      "tipsTitle": "Conseils",
-      "tips": {
-        "items": {
-          "addMissingKeywords": "Utilisez l'onglet CV pour ajouter les mots-clés manquants",
-          "focusTechnicalSkills": "Concentrez-vous sur les compétences techniques et les outils mentionnés dans la fiche",
-          "matchActionVerbs": "Reprenez les verbes d'action des exigences du poste"
-        }
-      },
       "stats": {
         "keywordsExtracted": "{count} mots-clés extraits",
         "matchesFound": "{count} correspondances trouvées",
-        "matchRateLabel": "Taux de correspondance :"
+        "matchRateLabel": "Taux de correspondance :",
+        "keywordRateLabel": "Mots-clés :"
+      },
+      "analyzing": "Évaluation des exigences...",
+      "analysisFailed": "Impossible d'analyser la correspondance",
+      "reanalyze": "Réanalyser",
+      "semanticScoreLabel": "Score de correspondance",
+      "semanticScoreExplainer": "{open} exigences sur {total} restent à traiter. Évalué sur le sens, pas sur les mots communs.",
+      "truncatedNotice": "Cette offre listait plus d'exigences que celles évaluées ; la fin a été ignorée.",
+      "improveMatch": "Améliorer la correspondance",
+      "improving": "Comblement des écarts...",
+      "allCovered": "Toutes les exigences sont couvertes.",
+      "status": {
+        "covered": "Couvert",
+        "partial": "Partiel",
+        "missing": "Absent"
+      },
+      "kind": {
+        "required": "requis",
+        "preferred": "souhaité",
+        "responsibility": "responsabilité",
+        "experience": "expérience",
+        "education": "formation"
+      },
+      "gapFix": {
+        "title": "Vérifier les ajouts suggérés",
+        "subtitle": "{count} modification(s) proposée(s). Rien n'est enregistré avant application.",
+        "noChanges": "Aucune modification exploitable n'a été produite pour ces écarts.",
+        "apply": "Appliquer les modifications",
+        "applied": "Modifications appliquées et enregistrées.",
+        "applyFailed": "Impossible d'enregistrer les modifications.",
+        "requestFailed": "Impossible de générer des améliorations. Veuillez réessayer.",
+        "action": {
+          "skill": "Ajouter une compétence",
+          "bullet": "Ajouter une puce"
+        }
       }
     },
     "genericItemForm": {

@@ -630,6 +630,50 @@ class ImproveResumeConfirmRequest(BaseModel):
     improvements: list[ImprovementSuggestion]
 
 
+# Semantic JD Match Models
+class RequirementCoverage(BaseModel):
+    """How one job requirement is evidenced by the resume."""
+
+    requirement: str
+    kind: Literal["required", "preferred", "responsibility", "experience", "education"]
+    status: Literal["covered", "partial", "missing"]
+    evidence: str = Field(
+        default="",
+        description="Verbatim resume quote supporting a 'covered' status; empty otherwise",
+    )
+    gap_note: str = Field(
+        default="",
+        description="What is absent, for 'partial'/'missing'; empty for 'covered'",
+    )
+
+
+class JdMatchResponse(BaseModel):
+    """Semantic match of a resume against the JD it was tailored for."""
+
+    score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=100.0,
+        description="Weighted coverage score computed from statuses, not model-supplied",
+    )
+    coverage: list[RequirementCoverage] = Field(default_factory=list)
+    highlight_keywords: list[str] = Field(
+        default_factory=list,
+        description="JD terms the UI highlights in the resume (wider than graded requirements)",
+    )
+    cached: bool = Field(
+        default=False, description="True when served from the stored analysis"
+    )
+    truncated: bool = Field(
+        default=False,
+        description="True when the posting yielded more requirements than were graded",
+    )
+
+
+# ``CloseGapsResponse`` lives further down, next to ``ResumeChange`` which it
+# references.
+
+
 # ATS Parseability Lint Models
 class AtsLintFinding(BaseModel):
     """A single ATS parseability issue found by the deterministic linter."""
@@ -892,3 +936,24 @@ class ImproveDiffResult(BaseModel):
 
     changes: list[ResumeChange] = Field(default_factory=list)
     strategy_notes: str = Field(default="")
+
+
+class CloseGapsResponse(BaseModel):
+    """Proposed, unsaved changes that close the open JD match gaps.
+
+    Nothing is persisted by the endpoint that returns this — the client reviews
+    the changes and saves through the normal resume PATCH, so an unwanted
+    suggestion costs nothing.
+    """
+
+    proposed_data: ResumeData
+    changes: list[ResumeChange] = Field(default_factory=list)
+    closed_requirements: list[str] = Field(
+        default_factory=list,
+        description="Requirements the applied changes were aimed at",
+    )
+    rejected_count: int = Field(
+        default=0,
+        description="Changes discarded by the diff safety gates (blocked path, bad target)",
+    )
+    warnings: list[str] = Field(default_factory=list)

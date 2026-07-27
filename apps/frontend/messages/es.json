@@ -268,18 +268,45 @@
       "highlightColor": "amarillo",
       "highlightedKeywordsDescriptionSuffix": "aparecen tanto en la descripción del puesto como en tu currículum. Una mayor coincidencia sugiere mejor alineación con los requisitos.",
       "highlightedKeywordsDescriptionTemplate": "Las palabras resaltadas en __COLOR__ aparecen tanto en la descripción del puesto como en tu currículum. Una mayor coincidencia sugiere mejor alineación con los requisitos.",
-      "tipsTitle": "Consejos",
-      "tips": {
-        "items": {
-          "addMissingKeywords": "Usa la pestaña del currículum para añadir palabras clave faltantes",
-          "focusTechnicalSkills": "Enfócate en habilidades técnicas y herramientas mencionadas en la JD",
-          "matchActionVerbs": "Haz coincidir verbos de acción de los requisitos"
-        }
-      },
       "stats": {
         "keywordsExtracted": "{count} palabras clave extraídas",
         "matchesFound": "{count} coincidencias encontradas",
-        "matchRateLabel": "Tasa de coincidencia:"
+        "matchRateLabel": "Tasa de coincidencia:",
+        "keywordRateLabel": "Coincidencias:"
+      },
+      "analyzing": "Evaluando requisitos...",
+      "analysisFailed": "No se pudo analizar la coincidencia",
+      "reanalyze": "Volver a analizar",
+      "semanticScoreLabel": "Puntuación de coincidencia",
+      "semanticScoreExplainer": "{open} de {total} requisitos del puesto aún necesitan trabajo. Evaluado por significado, no por coincidencia de palabras.",
+      "truncatedNotice": "Esta oferta incluía más requisitos de los evaluados; se omitieron los últimos.",
+      "improveMatch": "Mejorar coincidencia",
+      "improving": "Cerrando brechas...",
+      "allCovered": "Todos los requisitos están cubiertos.",
+      "status": {
+        "covered": "Cubierto",
+        "partial": "Parcial",
+        "missing": "Ausente"
+      },
+      "kind": {
+        "required": "obligatorio",
+        "preferred": "preferido",
+        "responsibility": "responsabilidad",
+        "experience": "experiencia",
+        "education": "educación"
+      },
+      "gapFix": {
+        "title": "Revisar adiciones sugeridas",
+        "subtitle": "{count} cambio(s) propuestos. Nada se guarda hasta que apliques.",
+        "noChanges": "No se generaron cambios útiles para estas brechas.",
+        "apply": "Aplicar cambios",
+        "applied": "Cambios aplicados y guardados.",
+        "applyFailed": "No se pudieron guardar los cambios.",
+        "requestFailed": "No se pudieron generar mejoras. Inténtalo de nuevo.",
+        "action": {
+          "skill": "Añadir habilidad",
+          "bullet": "Añadir viñeta"
+        }
       }
     },
     "genericItemForm": {

@@ -34,7 +34,10 @@ from app.schemas import (
     ATSScore,
     ATSSubScores,
     AtsScoreRequest,
+    CloseGapsResponse,
     GenerateContentResponse,
+    JdMatchResponse,
+    RequirementCoverage,
     GenerateInterviewPrepResponse,
     ImproveResumeConfirmRequest,
     ImproveResumeRequest,
@@ -76,6 +79,12 @@ from app.services.refiner import (
 )
 from app.services.ats import compute_ats_score
 from app.services.ats_lint import lint_resume
+from app.services.jd_match import (
+    analyze_jd_match,
+    close_match_gaps,
+    match_cache_key,
+    open_gaps,
+)
 from app.schemas.refinement import RefinementConfig
 from app.services.cover_letter import (
     generate_cover_letter,
@@ -2136,26 +2145,22 @@ async def generate_interview_prep_endpoint(
     )
 
 
-@router.get("/{resume_id}/job-description")
-async def get_job_description_for_resume(resume_id: str) -> dict:
-    """Get the job description used to tailor this resume.
+async def _resolve_resume_and_job(resume_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Load a tailored resume together with the job it was tailored against.
 
-    This endpoint retrieves the original job description that was used
-    to tailor a resume. Only works for tailored resumes (those with parent_id).
+    Shared by the job-description, jd-match, and close-gaps endpoints so the
+    "which job does this resume belong to" rules live in one place.
     """
-    # Get the resume
     resume = await db.get_resume(resume_id)
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
 
-    # Check if it's a tailored resume (has parent_id)
     if not resume.get("parent_id"):
         raise HTTPException(
             status_code=400,
             detail="Job description is only available for tailored resumes.",
         )
 
-    # Get improvement record to find the job_id
     improvement = await db.get_improvement_by_tailored_resume(resume_id)
     if not improvement:
         raise HTTPException(
@@ -2164,7 +2169,6 @@ async def get_job_description_for_resume(resume_id: str) -> dict:
             "The resume may have been created before job tracking was implemented.",
         )
 
-    # Get the job description
     job = await db.get_job(improvement["job_id"])
     if not job:
         raise HTTPException(
@@ -2172,10 +2176,184 @@ async def get_job_description_for_resume(resume_id: str) -> dict:
             detail="The associated job description was not found.",
         )
 
+    return resume, job
+
+
+@router.get("/{resume_id}/job-description")
+async def get_job_description_for_resume(resume_id: str) -> dict:
+    """Get the job description used to tailor this resume.
+
+    This endpoint retrieves the original job description that was used
+    to tailor a resume. Only works for tailored resumes (those with parent_id).
+    """
+    _resume, job = await _resolve_resume_and_job(resume_id)
     return {
         "job_id": job["job_id"],
         "content": job["content"],
     }
+
+
+async def _get_or_analyze_jd_match(
+    resume: dict[str, Any],
+    job: dict[str, Any],
+    *,
+    refresh: bool,
+) -> tuple[dict[str, Any], bool]:
+    """Return the semantic match analysis for a (resume, job) pair.
+
+    Cached in the job's dynamic metadata under a hash of the resume data + JD, so
+    re-opening the tab costs nothing and editing the resume invalidates it. The
+    cache holds a single entry per job — the analysis is only ever read for the
+    current version of the resume, so keeping older ones would grow
+    ``metadata_json`` for no benefit.
+
+    Returns ``(analysis, cached)``.
+    """
+    resume_data = _get_original_resume_data(resume)
+    if not resume_data:
+        raise HTTPException(
+            status_code=422,
+            detail="Resume has not finished processing yet. Please try again shortly.",
+        )
+
+    resume_data = normalize_resume_data(copy.deepcopy(resume_data))
+    cache_key = match_cache_key(resume_data, job["content"])
+    cached_entry = job.get("jd_match")
+    if (
+        not refresh
+        and isinstance(cached_entry, dict)
+        and cached_entry.get("key") == cache_key
+        and isinstance(cached_entry.get("analysis"), dict)
+    ):
+        return cached_entry["analysis"], True
+
+    job_keywords = await _get_or_extract_job_keywords(job, job["job_id"])
+    language = get_content_language()
+    try:
+        analysis = await analyze_jd_match(
+            resume_data=resume_data,
+            job_description=job["content"],
+            job_keywords=job_keywords,
+            language=language,
+        )
+    except ValueError as e:
+        # Nothing gradable came off the posting; a 0% would be a lie, not a score.
+        logger.warning("JD match analysis has nothing to grade: %s", e)
+        raise HTTPException(
+            status_code=422,
+            detail="No gradable requirements were found in this job description.",
+        )
+
+    try:
+        await db.update_job(job["job_id"], {"jd_match": {"key": cache_key, "analysis": analysis}})
+    except Exception as e:  # noqa: BLE001 - caching is best-effort
+        logger.warning("Failed to cache JD match analysis for job %s: %s", job["job_id"], e)
+
+    return analysis, False
+
+
+@router.get("/{resume_id}/jd-match", response_model=JdMatchResponse)
+async def get_jd_match(resume_id: str, refresh: bool = False) -> JdMatchResponse:
+    """Score a tailored resume against its JD, requirement by requirement.
+
+    Replaces browser-side token overlap: each requirement the extractor pulled
+    off the posting is graded semantically (so ``K8s`` matches ``Kubernetes``),
+    and the percentage is computed from those statuses rather than asked of the
+    model. One LLM call, then cached until the resume or JD changes; pass
+    ``refresh=true`` to force a re-grade.
+    """
+    resume, job = await _resolve_resume_and_job(resume_id)
+    try:
+        analysis, cached = await _get_or_analyze_jd_match(resume, job, refresh=refresh)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("JD match analysis failed for resume %s: %s", resume_id, e)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to analyze JD match. Please try again.",
+        )
+
+    return JdMatchResponse(
+        score=analysis.get("score", 0.0),
+        coverage=[
+            RequirementCoverage(**item) for item in analysis.get("coverage", [])
+        ],
+        highlight_keywords=analysis.get("highlight_keywords", []),
+        cached=cached,
+        truncated=bool(analysis.get("truncated", False)),
+    )
+
+
+@router.post("/{resume_id}/close-gaps", response_model=CloseGapsResponse)
+async def close_jd_match_gaps(resume_id: str) -> CloseGapsResponse:
+    """Propose changes that close this resume's open JD requirements.
+
+    Returns the proposed resume WITHOUT saving it: the client reviews the
+    changes and persists through ``PATCH /resumes/{id}`` like any other edit.
+    Every change is routed through the same ``apply_diffs`` gates the tailoring
+    pipeline uses, so a change targeting an employer, title, date, or degree is
+    rejected here rather than written.
+    """
+    resume, job = await _resolve_resume_and_job(resume_id)
+    resume_data = _get_original_resume_data(resume)
+    if not resume_data:
+        raise HTTPException(
+            status_code=422,
+            detail="Resume has not finished processing yet. Please try again shortly.",
+        )
+    resume_data = normalize_resume_data(copy.deepcopy(resume_data))
+
+    try:
+        analysis, _cached = await _get_or_analyze_jd_match(resume, job, refresh=False)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("JD match analysis failed before gap closing (%s): %s", resume_id, e)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to analyze JD match. Please try again.",
+        )
+
+    gaps = open_gaps(analysis.get("coverage", []))
+    if not gaps:
+        return CloseGapsResponse(
+            proposed_data=ResumeData.model_validate(resume_data),
+            warnings=["Every requirement is already covered — nothing to close."],
+        )
+
+    try:
+        proposed, applied, rejected = await close_match_gaps(
+            resume_data=resume_data,
+            job_description=job["content"],
+            gaps=gaps,
+            language=get_content_language(),
+        )
+    except Exception as e:
+        logger.error("Gap closing failed for resume %s: %s", resume_id, e)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to improve the match. Please try again.",
+        )
+
+    warnings: list[str] = []
+    if not applied:
+        warnings.append(
+            "No usable changes were produced for these gaps. Try re-running, "
+            "or close them by hand."
+        )
+    if rejected:
+        warnings.append(
+            f"{len(rejected)} proposed change(s) were rejected by the safety gates."
+        )
+
+    return CloseGapsResponse(
+        proposed_data=ResumeData.model_validate(proposed),
+        changes=applied,
+        closed_requirements=[str(gap.get("requirement", "")) for gap in gaps],
+        rejected_count=len(rejected),
+        warnings=warnings,
+    )
 
 
 @router.get("/{resume_id}/cover-letter/pdf")

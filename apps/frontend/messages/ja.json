@@ -268,18 +268,45 @@
       "highlightedKeywordsDescriptionPrefix": "次の色でハイライトされた単語",
       "highlightColor": "黄色",
       "highlightedKeywordsDescriptionSuffix": "は、求人内容と履歴書の両方に含まれます。一致率が高いほど、要件への適合度が高いことを示します。",
-      "tipsTitle": "ヒント",
-      "tips": {
-        "items": {
-          "addMissingKeywords": "「履歴書」タブで不足しているキーワードを追加する",
-          "focusTechnicalSkills": "JDに記載された技術スキルやツールに注目する",
-          "matchActionVerbs": "要件にある行動動詞に合わせる"
-        }
-      },
       "stats": {
         "keywordsExtracted": "抽出キーワード数: {count}",
         "matchesFound": "一致数: {count}",
-        "matchRateLabel": "一致率:"
+        "matchRateLabel": "一致率:",
+        "keywordRateLabel": "キーワード一致:"
+      },
+      "analyzing": "要件を評価中...",
+      "analysisFailed": "マッチ度を分析できませんでした",
+      "reanalyze": "再分析",
+      "semanticScoreLabel": "マッチスコア",
+      "semanticScoreExplainer": "{total} 件の要件のうち {open} 件がまだ不足しています。単語の一致ではなく意味で評価しています。",
+      "truncatedNotice": "この求人には評価した数を超える要件が記載されており、末尾は省略されました。",
+      "improveMatch": "マッチ度を上げる",
+      "improving": "不足を補っています...",
+      "allCovered": "すべての要件を満たしています。",
+      "status": {
+        "covered": "充足",
+        "partial": "一部",
+        "missing": "不足"
+      },
+      "kind": {
+        "required": "必須",
+        "preferred": "歓迎",
+        "responsibility": "職務",
+        "experience": "経験",
+        "education": "学歴"
+      },
+      "gapFix": {
+        "title": "提案された追加内容を確認",
+        "subtitle": "{count} 件の変更案があります。適用するまで保存されません。",
+        "noChanges": "これらの不足に対して有効な変更は生成されませんでした。",
+        "apply": "変更を適用",
+        "applied": "変更を適用して保存しました。",
+        "applyFailed": "変更を保存できませんでした。",
+        "requestFailed": "改善案を生成できませんでした。もう一度お試しください。",
+        "action": {
+          "skill": "スキルを追加",
+          "bullet": "箇条書きを追加"
+        }
       }
     },
     "genericItemForm": {
