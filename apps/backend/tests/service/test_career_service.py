@@ -204,9 +204,9 @@ class TestAnswerVoice:
         with patch.object(career_service, "complete_json", new=capture):
             await career_service.answer_career_question("Have you used GraphQL?")
         prompt = captured["prompt"]
-        assert "WHEN YOUR EXPERIENCE IS THIN" in prompt
-        # Thin evidence must not license invention.
-        assert "resolve thin evidence by inventing" in prompt.lower()
+        assert "WHEN THE HISTORY IS THIN ON THE SUBJECT" in prompt
+        # Thin evidence must not license inventing record-checkable facts.
+        assert "inventing an employer, a job title, or a date" in prompt
 
     async def test_prompt_still_forbids_fabrication(self, seeded):
         captured: dict[str, str] = {}
@@ -218,19 +218,20 @@ class TestAnswerVoice:
         with patch.object(career_service, "complete_json", new=capture):
             await career_service.answer_career_question("q")
         prompt = captured["prompt"]
-        assert "DO NOT invent employers" in prompt
-        assert "do not inflate a passing mention into deep expertise" in prompt
+        assert "NEVER invent an employer, a job title you held, or a date" in prompt
 
 
-class TestListOnlySkillGuard:
-    """Regression: a skill that appears only in a list must not acquire a story.
+class TestListedSkillIsSpeakable:
+    """A skill that appears only in a list MAY be spoken about as work.
 
-    The real failure: a resume listed "Databases: ... MongoDB, Firebase, GraphQL"
-    and separately had a real employer (DTS, MERN stack). The model welded them
-    together and produced "I used GraphQL at DTS to replace over-fetching REST
-    endpoints" — a specific, checkable, entirely invented claim. That is the
-    worst possible failure mode for this feature, so the prompt must forbid it
-    explicitly rather than relying on the general no-fabrication rule.
+    This deliberately reverses the earlier guard. That guard produced answers
+    that talked the candidate out of the role ("my exposure was brief"), which
+    fails the form question it was asked. A listed skill is now fair game: the
+    candidate answers for it in the interview.
+
+    What stays fixed is the record-checkable floor — employer, job title, date —
+    because a mismatch there ends the application regardless of how the
+    interview goes. These tests lock that floor, not the old restriction.
     """
 
     @pytest.fixture
@@ -263,12 +264,17 @@ class TestListOnlySkillGuard:
             await career_service.answer_career_question(question)
         return captured["prompt"]
 
-    async def test_prompt_forbids_attaching_a_listed_skill_to_an_employer(
+    async def test_prompt_allows_speaking_about_a_listed_skill_as_work(
         self, list_only_corpus
     ):
         prompt = await self._captured_prompt()
-        assert "A skill appearing in a LIST is not experience" in prompt
-        assert "may NOT attach it to any employer" in prompt
+        assert (
+            "including a technology that appears only in a skills or tools list"
+            in prompt
+        )
+        assert "in the past tense" in prompt
+        # The reversed guard must be gone, not merely contradicted elsewhere.
+        assert "is not experience" not in prompt
 
     async def test_prompt_forbids_narrating_where_a_skill_is_written(self, list_only_corpus):
         prompt = await self._captured_prompt()
@@ -278,17 +284,17 @@ class TestListOnlySkillGuard:
 
     async def test_prompt_retains_the_invented_employer_guard(self, list_only_corpus):
         prompt = await self._captured_prompt()
-        assert "DO NOT invent employers" in prompt
+        assert "NEVER invent an employer, a job title you held, or a date" in prompt
 
     async def test_thin_evidence_rules_still_forbid_invention(self, list_only_corpus):
         prompt = await self._captured_prompt()
-        assert "resolve thin evidence by inventing" in prompt.lower()
+        assert "inventing an employer, a job title, or a date" in prompt
 
     async def test_grounding_rules_are_numbered_contiguously(self, list_only_corpus):
         """The rules block was once mangled into 'identifier3. DO NOT...' by a
         hand edit, fusing two rules and breaking the numbering."""
         prompt = await self._captured_prompt()
-        block = prompt.split("GROUNDING RULES")[1].split("VOICE")[0]
+        block = prompt.split("\nRULES:")[1].split("VOICE")[0]
         numbers = [
             int(line.split(".", 1)[0])
             for line in block.splitlines()
@@ -328,13 +334,13 @@ class TestExplainVersusRecite:
         assert "GENERAL TECHNICAL KNOWLEDGE" in prompt
         # The exemption is the whole point: explain the tech, ground the biography.
         assert "NOT a claim about your career" in prompt
-        assert "ground the biography, explain the technology" in prompt
+        assert "answer from your work, and explain the technology properly" in prompt
 
     async def test_grounding_rules_are_scoped_to_personal_claims(self, seeded):
         prompt = await self._prompt()
         # Scoped, not blanket — otherwise explanation is banned again.
-        assert "GROUNDING RULES - apply to claims about you" in prompt
-        assert "factual claim about your own work MUST be traceable" in prompt
+        assert "Answer from the history above" in prompt
+        assert "record which pieces you drew on" in prompt
 
     async def test_requires_covering_every_part_of_the_question(self, seeded):
         prompt = await self._prompt()
@@ -349,12 +355,12 @@ class TestExplainVersusRecite:
     async def test_thin_evidence_now_routes_to_explanation_not_hedging(self, seeded):
         prompt = await self._prompt()
         assert "DEMONSTRATING that you understand the subject" in prompt
-        # And still cannot be read as licence to invent.
-        assert "resolve thin evidence by inventing" in prompt.lower()
+        # And still cannot be read as licence to invent a job.
+        assert "inventing an employer, a job title, or a date" in prompt
 
     async def test_biography_guards_survive_the_exemption(self, seeded):
-        """The knowledge exemption must not have loosened the personal-claim rules."""
+        """The knowledge exemption must not have loosened the record-checkable floor."""
         prompt = await self._prompt()
-        assert "DO NOT invent employers" in prompt
-        assert "A skill appearing in a LIST is not experience" in prompt
-        assert "never imply you built something in order to show that you understand it" in prompt
+        assert "NEVER invent an employer, a job title you held, or a date" in prompt
+        assert "checked against employment records" in prompt
+        assert "Do not turn a concept you only know about into a whole project you led" in prompt

@@ -1024,6 +1024,7 @@ async def _improve_preview_flow(
                 original_resume_data=original_resume_data,
                 job_keywords=job_keywords,
                 job_description=job["content"],
+                prompt_id=prompt_id,
             )
             accepted_targets = verified_skill_plan.get("accepted", [])
             if isinstance(accepted_targets, list):

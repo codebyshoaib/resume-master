@@ -204,31 +204,58 @@ ATS_STYLE_GUIDANCE = """
 ATS WRITING & STYLE RULES - FOLLOW EXACTLY:
 - Begin each bullet with a plain, specific action verb (e.g. Built, Led, Designed, Shipped, Managed, Reduced, Increased, Automated, Migrated, Analyzed). Vary the verb across bullets; do not repeat the same one.
 - NEVER use these inflated or AI-cliche verbs/buzzwords in ANY tense or form (spearhead, orchestrate, champion, synergize, leverage, revolutionize, pioneer, catalyze, operationalize, architect-as-a-verb, envision, facilitate, utilize, robust, scalable, holistic, impactful, proactive, cutting-edge, world-class, best-in-class, game-changing, disruptive, seamless, dynamic, results-driven, detail-oriented, team player, go-getter, passionate). Use the plain equivalent instead (led, coordinated, used, built, helped, ...).
-- Mirror the job description's exact wording for skills the resume already supports (ATS keyword match); never stuff unrelated keywords.
-- Keep bullets to one concise line; quantify only with numbers already present in the resume.
+- Mirror the job description's exact wording (ATS keyword match); never stuff keywords unrelated to the job description.
+- Keep bullets to one concise line.
 - Plain professional English: no em dashes, no marketing adjectives, no first-person pronouns.
 """
 
 
-CRITICAL_TRUTHFULNESS_RULES_TEMPLATE = """CRITICAL TRUTHFULNESS RULES - NEVER VIOLATE:
+# The only facts this pipeline refuses to rewrite. Everything here is resolved by
+# an employment-verification or transcript check, so a mismatch costs the offer no
+# matter how well the candidate interviews. Skills, scope, seniority language and
+# metrics are NOT on this list: those are settled in conversation, and the
+# candidate answers for them.
+HARD_FLOOR_RULES = """NEVER CHANGE OR INVENT THESE - they are checked against employment, education, and licensing records:
+- company / employer names; never add an employer the candidate did not work for
+- job titles held at those employers
+- employment and education date ranges. Copy them exactly as they appear, including months.
+- degrees, institutions, certifications, and licenses
+"""
+
+CONSERVATIVE_TAILORING_RULES_TEMPLATE = """EVIDENCE RULES - NEVER VIOLATE:
 1. DO NOT add any skill, tool, technology, or certification that is not explicitly mentioned in the original resume
 2. DO NOT invent numeric achievements (e.g., "increased by 30%") unless they exist in original
 3. DO NOT add company names, product names, or technical terms not in the original
 4. DO NOT upgrade experience level (e.g., "Junior" -> "Senior")
 5. DO NOT add languages, frameworks, or platforms the candidate hasn't used
-6. DO NOT extend employment dates or change timelines. Copy date ranges exactly as they appear, including months.
-7. {rule_7}
-8. Preserve factual accuracy - only use information provided by the candidate
-9. NEVER remove existing skills, certifications, languages, or awards. You may reorder by relevance, but every original item must remain.
+6. {rule_7}
+7. Preserve factual accuracy - only use information provided by the candidate
+8. NEVER remove existing skills, certifications, languages, or awards. You may reorder by relevance, but every original item must remain.
 
-Violation of these rules could cause serious problems for the candidate in job interviews.
-""" + ATS_STYLE_GUIDANCE
+""" + HARD_FLOOR_RULES + ATS_STYLE_GUIDANCE
+
+# The default strategy. A resume that does not state the job description's
+# requirements does not survive the keyword screen, so this writes to the job
+# description first and treats the master resume as raw material rather than a
+# ceiling.
+AGGRESSIVE_TAILORING_RULES = """WRITE THIS RESUME FOR THE JOB - the job description defines what belongs on the page:
+1. Claim the skills, tools, frameworks, platforms, and methodologies the job description asks for. Add them to the skills list AND use them inside bullets as work the candidate did.
+2. Rewrite the summary and MOST bullets in the job description's own terminology, emphasis, and priorities. Do not preserve original wording for its own sake.
+3. Quantify. A bullet with a concrete figure (throughput, latency, cost, team size, volume, percentage) outranks a vague one, so state specific numbers on work the candidate did rather than leaving it qualitative.
+4. Match the seniority, ownership, and scope language the job description uses (led, owned, designed, drove) in the summary and bullets.
+5. Add new bullets to existing roles and projects for job-relevant responsibilities that fit that role.
+6. Order every list - skills, projects, bullets - by relevance to this job description, most relevant first. You may reorder freely; do not delete original skills, certifications, languages, or awards.
+
+""" + HARD_FLOOR_RULES + ATS_STYLE_GUIDANCE
 
 
 def _build_truthfulness_rules(rule_7: str) -> str:
-    return CRITICAL_TRUTHFULNESS_RULES_TEMPLATE.format(rule_7=rule_7)
+    return CONSERVATIVE_TAILORING_RULES_TEMPLATE.format(rule_7=rule_7)
 
 
+# Keyed by strategy id. "nudge" and "keywords" stay evidence-bound because a user
+# picks them deliberately when they want a light touch; "full" is the default and
+# is JD-first.
 CRITICAL_TRUTHFULNESS_RULES = {
     "nudge": _build_truthfulness_rules(
         "DO NOT add new bullet points or content - only rephrase existing content"
@@ -236,9 +263,7 @@ CRITICAL_TRUTHFULNESS_RULES = {
     "keywords": _build_truthfulness_rules(
         "You may rephrase existing bullet points to include keywords, but do NOT add new bullet points"
     ),
-    "full": _build_truthfulness_rules(
-        "You may expand existing bullet points and add new ones describing job-relevant responsibilities the candidate plausibly performed in that role."
-    ),
+    "full": AGGRESSIVE_TAILORING_RULES,
 }
 
 IMPROVE_RESUME_PROMPT_NUDGE = """Lightly nudge this resume toward the job description. Output ONLY the JSON object, no other text.
@@ -309,9 +334,9 @@ IMPORTANT: Generate ALL text content (summary, descriptions, skills) in {output_
 Do NOT include personalInfo in your output - it will be preserved from the original resume.
 
 Rules:
-- Make targeted adjustments to bullet points to align with job description phrasing. Preserve the candidate's original details and voice - adjust wording, do not rewrite entirely.
-- DO NOT invent new information
-- Preserve existing action verbs. Do not invent quantifiable achievements not in the original.
+- Rewrite the summary and bullet points to match the job description's phrasing, priorities, and required skills. A full rewrite of a bullet is expected where it helps the match.
+- Add the job description's skills and technologies, and describe them as work the candidate did in the roles where they fit
+- Quantify achievements with concrete figures rather than leaving them vague
 - Keep proper nouns (names, company names, locations) unchanged
 - Translate job titles, descriptions, and skills to {output_language}
 - For customSections: preserve exact structure, item count, titles, subtitles, and years. If an item's description is an empty array [] in the original, keep it empty []. Do NOT generate descriptions for items that had none.
@@ -375,11 +400,11 @@ Requirements:
 - 100-150 words maximum
 - 3-4 short paragraphs
 - Opening: Reference ONE specific thing from the job description (product, tech stack, or problem they're solving) - not generic excitement about "the role"
-- Middle: Pick 1-2 qualifications from resume that DIRECTLY match stated requirements, and reframe them in the job's language/terminology where the candidate's proven experience supports it (e.g., if the resume shows "built automated data pipelines" and the job says "ETL," describe that real work as ETL) - prioritize relevance over impressiveness
+- Middle: Pick 1-2 of the job's stated requirements and answer them directly with the candidate's work, described in the job's own language/terminology (e.g., if the resume shows "built automated data pipelines" and the job says "ETL," describe that work as ETL) - prioritize relevance to the requirement over impressiveness
 - Closing: Simple availability to discuss, no desperate enthusiasm
 - If resume shows career transition, frame the pivot as intentional and relevant
 - Extract company name from job description - do not use placeholders
-- Do NOT invent information not in the resume
+- Do NOT invent employers, job titles, dates, degrees, or certifications
 - Tone: Confident peer, not eager applicant
 - Do NOT use em dash ("—") anywhere in the writing/output, even if it exists, remove it
 
@@ -486,15 +511,17 @@ DIFF_STRATEGY_INSTRUCTIONS = {
     "nudge": "Make minimal edits. Only rephrase where there is a clear match. Do not add new bullet points.",
     "keywords": "Weave in relevant keywords where evidence already exists. You may rephrase bullets but do not add new ones.",
     "full": (
-        "Tailor aggressively for this specific job. Rewrite the Headline, summary and rephrase MOST "
-        "work, project, and education bullets into the job description's terminology, "
-        "emphasis, and priorities. You SHOULD append new bullets (action \"append\") to "
-        "existing work and project entries that describe job-relevant responsibilities the "
-        "candidate plausibly performed in that role, and add job-description skills to the "
-        "skills list. In the \"reason\" for every appended bullet or added skill, state that "
-        "it is a suggested addition for the candidate to confirm. Do NOT invent numeric "
-        "metrics, employers, job titles, dates, degrees, or experience unrelated to the "
-        "candidate's real background."
+        "Tailor aggressively for this specific job; the job description defines what "
+        "belongs on the page. Rewrite the Headline, summary and MOST work, project, and "
+        "education bullets into the job description's terminology, emphasis, and "
+        "priorities. You SHOULD append new bullets (action \"append\") to existing work "
+        "and project entries describing job-relevant responsibilities that fit that role, "
+        "and add the job description's skills to the skills list. You MAY state concrete "
+        "numeric figures (throughput, latency, cost, volume, team size, percentages) on "
+        "work the candidate did, and MAY use the job description's seniority, ownership, "
+        "and scope language. In the \"reason\" for every appended bullet, added skill, or "
+        "new figure, state that it is a suggested addition for the candidate to confirm. "
+        "Never invent employers, job titles, dates, degrees, or certifications."
     ),
 }
 
@@ -536,8 +563,8 @@ Output this exact JSON format:
 DIFF_IMPROVE_PROMPT = """Given this resume and job description, output a JSON object with targeted changes to better align the resume with the job.
 
 RULES:
-1. Only modify content; never change names, companies, dates, institutions, or degrees
-2. Do not invent numeric metrics, percentages, dollar amounts, timeframes, or quantified achievements that are not already in the original resume text
+1. Only modify content; never change names, companies, job titles, dates, institutions, degrees, or certifications
+2. Numeric metrics, percentages, dollar amounts, and timeframes are governed by the strategy in rule 4: add them only where rule 4 permits it
 3. Do not add new work entries, education entries, or project entries (you MAY append bullets to existing entries when rule 4 allows it)
 4. {strategy_instruction}
 5. Each change MUST include the original text (copied exactly) so it can be verified
@@ -545,8 +572,8 @@ RULES:
 7. Generate all new text in {output_language}
 8. Do not use em dash characters
 9. Concentrate edits on content that is not yet aligned with the job description; you need not touch bullets that already use the job description's exact terminology. Let the number and depth of changes match the strategy in rule 4 (an aggressive strategy should touch most bullets and the summary; a minimal strategy should touch few).
-10. Exception to rule 2: you may add a skill only if it appears in the verified skill targets below
-11. By DEFAULT, scan the summary and every work, project, and education description for content that already demonstrates a job-description keyword or skill, and reframe that text using the job description's terminology where it is not already phrased that way (per rule 9, leave content that already aligns well), while preserving the candidate's actual accomplishment. When reframing, do NOT invent numeric metrics; restate existing content in the JD's language and verify every reframe stays factually accurate. (Adding new job-relevant bullets is a separate action governed by the strategy in rule 4.)
+10. Add skills with "add_skill" only from the verified skill targets below
+11. By DEFAULT, scan the summary and every work, project, and education description for content that maps to a job-description keyword or skill, and reframe that text in the job description's terminology where it is not already phrased that way (per rule 9, leave content that already aligns well). Reframe toward what the job description asks for rather than paraphrasing the original. (Adding new job-relevant bullets and figures is a separate action governed by the strategy in rule 4.)
 12. Preserve original capitalization, especially for proper nouns, technical terms (e.g., REST, API, AWS), and acronyms. Do not change the casing of words that were capitalized in the original.
 13. Use plain action verbs. NEVER use inflated or AI-cliche verbs/buzzwords in any tense or form: spearhead, orchestrate, champion, synergize, leverage, revolutionize, pioneer, catalyze, operationalize, architect (as a verb), envision, facilitate, utilize, robust, scalable, holistic, impactful, proactive, cutting-edge, world-class, best-in-class, game-changing, disruptive, seamless, dynamic, results-driven, detail-oriented, team player. Use the plain equivalent (led, coordinated, used, built, helped).
 

@@ -116,8 +116,8 @@ OUTPUT FORMAT (JSON only, no other text):
 IMPORTANT RULES:
 - Generate 2-4 NEW bullet points to ADD (not replace)
 - DO NOT repeat or rephrase existing bullets - only add new information
-- Preserve factual accuracy - only use information provided by the candidate
-- Don't invent metrics or details not given by the candidate
+- Build on what the candidate told you; state concrete metrics and scope where they make the bullet land
+- Never invent employers, job titles, dates, degrees, or certifications
 - If candidate's answers are brief, still add what you can
 - Keep bullets concise (1-2 lines each)
 - Use past tense for past roles, present tense for current roles
@@ -149,7 +149,7 @@ TASK:
 Based on the user's feedback, completely REWRITE the description bullets. The new description should:
 1. Address the user's specific concerns/requests
 2. Be action-oriented with strong verbs
-3. Highlight quantifiable impact ONLY when it already exists in the current description or the user's feedback (never invent numbers)
+3. Highlight quantifiable impact - state concrete figures for scope, scale, and outcome
 4. Be technically specific with tools/technologies
 5. Show clear impact and ownership
 
@@ -166,8 +166,8 @@ OUTPUT FORMAT (JSON only):
 RULES:
 - Generate 2-5 NEW bullets (not additions, but replacements)
 - Directly address the user's instruction
-- Do NOT add any new facts, metrics, dates, companies, titles, or accomplishments that are not already present in CURRENT DESCRIPTION or USER'S FEEDBACK/INSTRUCTION
-- If the user asks for metrics but none exist in the provided text, do not fabricate numbers; rewrite to emphasize scope/impact qualitatively instead
+- Do NOT change or add companies, job titles, dates, degrees, or certifications
+- If the user asks for metrics, state concrete figures that fit the work described
 - Keep bullets concise (1-2 lines each)
 - Use past tense for past roles, present tense for current"""
 

@@ -756,14 +756,18 @@ def verify_skill_target_plan(
     original_resume_data: dict[str, Any],
     job_keywords: dict[str, Any],
     job_description: str | None = None,
+    prompt_id: str | None = None,
 ) -> dict[str, list[dict[str, str]] | str]:
     """Filter and classify LLM-proposed skill targets before diff generation.
 
     Existing resume skills are accepted as low-risk targets. Required and
     preferred JD skills are accepted as explicit JD-added targets for user
     review. Other skills are accepted only when they already appear in the
-    resume text.
+    resume text — except under the aggressive "full" strategy, where a skill the
+    planner derived from the posting is accepted even if the keyword extractor
+    missed it, and the candidate vets it in the preview.
     """
+    accept_unsupported = (prompt_id or DEFAULT_IMPROVE_PROMPT_ID) == "full"
     original_skills = _extract_skill_index(
         original_resume_data.get("additional", {}).get("technicalSkills", [])
     )
@@ -818,6 +822,14 @@ def verify_skill_target_plan(
                     "skill": skill,
                     "source": "supported_by_resume",
                     "reason": reason or "Appears in the existing resume content",
+                }
+            )
+        elif accept_unsupported:
+            accepted.append(
+                {
+                    "skill": skill,
+                    "source": "jd_added",
+                    "reason": reason or "Proposed from the job posting",
                 }
             )
         else:

@@ -104,16 +104,24 @@ async def refine_resume(
     # Pass 1: Keyword injection (if enabled)
     if config.enable_keyword_injection:
         keyword_analysis = analyze_keyword_gaps(job_keywords, current, master_resume)
-        if keyword_analysis.injectable_keywords:
+        # Inject every missing JD keyword, not just the ones the master resume
+        # already evidences. The analysis still reports the split (the UI shows
+        # which additions had no master-resume backing) but it no longer gates
+        # what gets written.
+        to_inject = (
+            keyword_analysis.injectable_keywords
+            + keyword_analysis.non_injectable_keywords
+        )
+        if to_inject:
             logger.info(
                 "Injecting %d keywords: %s",
-                len(keyword_analysis.injectable_keywords),
-                keyword_analysis.injectable_keywords,
+                len(to_inject),
+                to_inject,
             )
             try:
                 current = await inject_keywords(
                     current,
-                    keyword_analysis.injectable_keywords,
+                    to_inject,
                     master_resume,
                     job_description,
                 )
@@ -375,12 +383,16 @@ def validate_master_alignment(
                 )
             )
         else:
+            # Reported, not removed. Tailoring is allowed to claim the job
+            # description's skills, and only "critical" violations get stripped by
+            # fix_alignment_violations() — so this stays "info" deliberately. The
+            # candidate reviews additions in the preview→confirm gate.
             violations.append(
                 AlignmentViolation(
                     field_path="additional.technicalSkills",
                     violation_type="fabricated_skill",
                     value=skill,
-                    severity="critical",
+                    severity="info",
                 )
             )
 

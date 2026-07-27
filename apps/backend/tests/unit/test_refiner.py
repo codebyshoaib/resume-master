@@ -125,11 +125,17 @@ class TestValidateMasterAlignment:
         ]
         assert critical_skill_violations == []
 
-    async def test_refiner_rejects_skill_from_generic_keyword_only(
+    async def test_refiner_keeps_skill_from_generic_keyword_only(
         self,
         sample_resume,
         master_resume,
     ):
+        """Alignment reports unbacked skills; it no longer deletes them.
+
+        Stripping JD skills the master resume did not already list defeated the
+        point of tailoring. The violation is still recorded (severity "info") so
+        the preview can surface it, but the skill survives to the saved resume.
+        """
         tailored = copy.deepcopy(sample_resume)
         tailored["additional"]["technicalSkills"].append("CI/CD")
         result = await refine_resume(
@@ -147,7 +153,11 @@ class TestValidateMasterAlignment:
                 enable_master_alignment_check=True,
             ),
         )
-        assert "CI/CD" not in result.refined_data["additional"]["technicalSkills"]
+        assert "CI/CD" in result.refined_data["additional"]["technicalSkills"]
+        assert any(
+            v.value.lower() == "ci/cd" and v.severity != "critical"
+            for v in result.alignment_report.violations
+        )
 
     async def test_refiner_allows_required_skill_present_in_job_description(
         self,

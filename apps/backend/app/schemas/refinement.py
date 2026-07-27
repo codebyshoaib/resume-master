@@ -22,7 +22,10 @@ class KeywordGapAnalysis(BaseModel):
     )
     non_injectable_keywords: list[str] = Field(
         default_factory=list,
-        description="Missing keywords not in master resume (cannot add truthfully)",
+        description=(
+            "Missing keywords with no master-resume backing. Still injected — this "
+            "field reports which additions the candidate should be ready to defend."
+        ),
     )
     current_match_percentage: float = Field(
         default=0.0, ge=0.0, le=100.0, description="Current keyword match percentage"

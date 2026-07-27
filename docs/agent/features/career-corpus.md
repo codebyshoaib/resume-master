@@ -104,25 +104,29 @@ without them. Each is pinned by a regression test in
 | *"as it is listed among my technical skills in my resume"* | Never mention sources, or describe where something is written down |
 | The gap argued against the candidate inside the answer body | Caveats live in `gaps` only, never in `answer` |
 | `full‑stack` with U+2011, curly quotes | `_plain_ascii()` normalises typography that web form fields mangle; known offenders only, so accented names survive |
-| A skills line + an unrelated employer became *"I used GraphQL at DTS to replace over-fetching REST endpoints"* | A technology appearing **only** in a skills list is not experience and may not be attached to any employer, project, or outcome |
-| *"share your experience and understanding of the concepts"* answered with a CV summary | **Claims about you** stay grounded; **general technical knowledge** is explicitly exempt and must be explained. See below |
+| Hedging answers ("my exposure was brief") that argued the candidate out of the role | A technology anywhere in the corpus — **including one that appears only in a skills list** — may be spoken about as work done, in the past tense, on the role it fits |
+| *"share your experience and understanding of the concepts"* answered with a CV summary | **General technical knowledge** must be explained properly, not substituted with a CV tour. See below |
 
-### Grounded biography, free explanation
+### The floor, and everything above it
 
-The single most important distinction in the prompt:
+The prompt fixes exactly three things and opens up the rest:
 
-- **Claims about you** — employers, titles, dates, what you built, what you
-  measured — are strictly limited to the corpus. This is where fabrication is
-  dangerous.
+- **Fixed:** employer, job title held, and dates. These resolve against
+  employment records, so a mismatch ends the application no matter how well the
+  candidate interviews. Also fixed: citation ids, which the service drops when
+  invented (`answer_career_question`).
+- **Open:** which skills and technologies the answer claims, how deep the
+  described experience is, and the figures it states. The candidate defends these
+  in the interview; a hedged answer loses the form question outright.
 - **General technical knowledge** — what a technology is, how it works,
   trade-offs, common pitfalls — is public knowledge, *not* a claim about the
-  candidate's career. It is exempt from grounding and must be explained properly.
+  candidate's career, and must be explained properly.
 
 Grounding everything was the original bug: it left the model no material except
 resume lines, so a question asking for conceptual understanding could only be
-answered by reciting the CV. A test asserts the biography guards survived the
-exemption, so widening what may be *explained* cannot quietly widen what may be
-*claimed*.
+answered by reciting the CV. The listed-skill restriction was the second bug, for
+the same reason — see `TestListedSkillIsSpeakable`, which pins the reversal *and*
+the employer/title/date floor.
 
 `CRITICAL_TRUTHFULNESS_RULES` from `prompts/templates.py` is deliberately **not**
 reused: those rules govern *editing a resume* ("do not remove existing skills",
@@ -179,11 +183,11 @@ pass through the already-configured LiteLLM router, not a `tesseract` dependency
 
 ## Phase 5 is blocked on a design decision
 
-Tailoring currently validates output against the **master resume**, and
-`CRITICAL_TRUTHFULNESS_RULES` exists to stop fabrication. Once tailoring can pull
-from a corpus, legitimately-sourced content will trip that check as if it were
-invented. Two wrong fixes: loosen the check (raises fabrication risk, which is
-the app's stated guardrail) or leave it (the feature cannot work).
+Tailoring validates output against the **master resume**. That check no longer
+strips unbacked skills (they are reported at `info` severity), but it still
+removes certifications and work entries absent from the master. Once tailoring can
+pull from a corpus, a legitimately corpus-sourced certification or role will trip
+that check as if it were invented.
 
 Intended fix: **the corpus becomes the truth set**, a superset of the master
 resume, and alignment validates against corpus-derived facts. This must be

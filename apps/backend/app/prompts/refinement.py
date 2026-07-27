@@ -138,14 +138,15 @@ AI_PHRASE_REPLACEMENTS: dict[str, str] = {
 KEYWORD_INJECTION_PROMPT = """Inject the following keywords into this resume by reframing the candidate's existing experience in the job description's language. Target EVERY section (summary, work experience, projects, technical skills) by default.
 
 CRITICAL RULES:
-1. Only reframe with keywords the master resume substantively supports (e.g., if the master shows "used Python for data analysis", surface "Python" and "data analysis" language)
-2. Do NOT add skills, technologies, or certifications not in the master resume
-3. Rephrase existing bullet points and content to include keywords - do not invent new content, metrics, or work history
+1. Work every keyword below into the resume. Where the master resume has adjacent work, reframe it in the keyword's language (e.g., if the master shows "used Python for data analysis", surface "Python" and "data analysis"); where it does not, attach the keyword to the role or project it fits best.
+2. Add the keywords to the technical skills list as well as into the bullet text
+3. Rephrase bullet points to carry the keywords. You may state concrete figures on the candidate's work.
 4. Maintain the exact same JSON structure
 5. Do not use em-dashes (—) or their variants (---, --)
 6. Make keyword incorporation the DEFAULT across all content sections, not an optional enhancement
+7. Never invent employers, job titles, dates, degrees, or certifications - those are checked against records
 
-Keywords to inject (only if supported by master resume):
+Keywords to inject:
 {keywords_to_inject}
 
 Current tailored resume:
@@ -161,7 +162,7 @@ Output the complete resume JSON with keywords naturally integrated. Return ONLY 
 
 
 # Prompt for validation and polish pass
-VALIDATION_POLISH_PROMPT = """Review and polish this resume content. Remove any AI-sounding language and ensure all content is truthful.
+VALIDATION_POLISH_PROMPT = """Review and polish this resume content. Remove any AI-sounding language.
 
 REMOVE or REPLACE:
 - Buzzwords: "spearheaded", "synergy", "leverage", "orchestrated", etc.
@@ -170,14 +171,13 @@ REMOVE or REPLACE:
 - Generic filler: "in order to" -> "to"
 
 VERIFY:
-- All skills exist in the master resume
-- All certifications exist in the master resume
-- No fabricated metrics or achievements
+- Employers, job titles, dates, degrees, and certifications match the master resume exactly
+- Skills and achievements stay as written; do not strip them for lacking master-resume backing
 
 Resume to polish:
 {resume}
 
-Master resume (verify all claims against this):
+Master resume (employers, titles, dates, degrees, and certifications come from here):
 {master_resume}
 
 Output the polished resume JSON. Return ONLY valid JSON."""

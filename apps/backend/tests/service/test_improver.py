@@ -264,6 +264,7 @@ class TestSkillTargetPlanning:
             original_resume_data=sample_resume,
             job_keywords=sample_job_keywords,
             job_description=sample_job_description,
+            prompt_id="keywords",
         )
         accepted_skills = [item["skill"] for item in verified["accepted"]]
         rejected_skills = [item["skill"] for item in verified["rejected"]]
@@ -271,6 +272,26 @@ class TestSkillTargetPlanning:
         assert rejected_skills == ["CI/CD", "BananaDB"]
         assert verified["accepted"][0]["source"] == "existing"
         assert verified["accepted"][1]["source"] == "jd_added"
+
+    def test_full_strategy_accepts_targets_the_extractor_missed(
+        self,
+        sample_resume,
+        sample_job_keywords,
+        sample_job_description,
+    ):
+        """The default ("full") strategy is JD-first: a planner-proposed skill is
+        kept even without resume or extracted-keyword backing, and the candidate
+        vets it in the preview. Conservative strategies still reject it above."""
+        raw_plan = {"target_skills": [{"skill": "BananaDB", "reason": "In the posting"}]}
+        verified = verify_skill_target_plan(
+            raw_plan,
+            original_resume_data=sample_resume,
+            job_keywords=sample_job_keywords,
+            job_description=sample_job_description,
+            prompt_id="full",
+        )
+        assert [item["skill"] for item in verified["accepted"]] == ["BananaDB"]
+        assert verified["rejected"] == []
 
 
 class TestGenerateResumeDiffsEdgeCases:

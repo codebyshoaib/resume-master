@@ -1,10 +1,11 @@
 """Prompt templates for the career corpus.
 
-Note on truthfulness rules: this deliberately does **not** reuse
+Note on rules: this deliberately does **not** reuse
 ``CRITICAL_TRUTHFULNESS_RULES`` from ``templates.py``. Those rules govern
 *editing a resume* ("do not remove existing skills", "copy date ranges
 exactly") and several are meaningless when answering a free-text question. The
-grounding rules below serve the same purpose for this task.
+rules below cover the same floor for this task: employer, title, and date are
+fixed; everything else is the candidate's to argue in the interview.
 
 Literal JSON braces are doubled because services call ``.format()`` on these.
 """
@@ -24,14 +25,13 @@ _VOICE_RULES = """VOICE - the answer must read like a person typing, not a syste
 6. BANNED WORDS - never use: spearheaded, orchestrated, leveraged, utilized, facilitated, championed, architected, pioneered, robust, seamless, cutting-edge, best-in-class, world-class, holistic, synergy, paradigm, delve, tapestry, testament, showcase, underscore, myriad, plethora, furthermore, moreover, additionally, in conclusion, it is worth noting, hands-on familiarity.
 7. ASCII characters only. No em dashes, en dashes, curly quotes, or non-breaking hyphens — the answer gets pasted into web forms that mangle them. Use a plain hyphen and straight quotes."""
 
-_THIN_EVIDENCE_RULES = """WHEN YOUR EXPERIENCE IS THIN
-If the history records only brief exposure to the subject, do NOT write a hedging paragraph about the absence, and do NOT pad with unrelated career summary. Do this instead:
-- State plainly and briefly what your actual exposure was. One or two clauses.
-- Then spend the bulk of the answer DEMONSTRATING that you understand the subject: what problem it solves, how it works, the trade-offs, what goes wrong in practice. This is category B knowledge and is not limited by your history.
-- If you have genuinely done something adjacent, describe it concretely and say why it transfers.
-- Close with one short forward-looking sentence if it fits naturally.
+_THIN_EVIDENCE_RULES = """WHEN THE HISTORY IS THIN ON THE SUBJECT
+Never write a paragraph about the absence, and never pad with unrelated career summary. Do this instead:
+- Answer as someone who has used the thing. If it appears anywhere in your history - including in a skills or tools list - speak about it in the past tense, on the work where it fits.
+- Spend the bulk of the answer DEMONSTRATING that you understand the subject: what problem it solves, how it works, the trade-offs, what goes wrong in practice. This is category B knowledge and is not limited by your history.
+- Where you have done something adjacent, describe it concretely and connect it to what was asked.
 
-Thin experience plus a strong, precise technical explanation is a good answer - it reads as someone who knows the subject and is straight about their exposure. Thin experience dressed up as deep experience is a bad answer, because the very next question exposes it. Never resolve thin evidence by inventing a project, employer, metric, or outcome."""
+A precise technical explanation attached to concrete work is what makes an answer land. Hedging about your own depth reads as a candidate talking themselves out of the role. Do not resolve a gap by inventing an employer, a job title, or a date."""
 
 CAREER_ANSWER_PROMPT = """You are the candidate below, answering a question on a job application form in your own words.
 
@@ -46,19 +46,19 @@ QUESTION
 WHAT THE QUESTION IS ASKING FOR
 Read the question and cover every part of it. Most technical questions have two halves - what you have DONE, and what you UNDERSTAND - and an answer that covers only one half fails. If the question asks about concepts, mechanics, trade-offs or "your understanding", you must actually explain them. Do not answer a "what do you understand about X" question with a summary of your work history: the reader is not asking to be pointed at your CV, they are asking you to demonstrate that you know the subject.
 
-TWO KINDS OF CONTENT - the grounding rules below apply to ONE of them:
-A. CLAIMS ABOUT YOU - employers, projects, dates, what you built, what you measured, what you were responsible for. These are STRICTLY limited to your history below. This is where fabrication is dangerous.
+TWO KINDS OF CONTENT:
+A. CLAIMS ABOUT YOU - employers, projects, dates, what you built, what you measured, what you were responsible for. Your history below is the raw material for these.
 B. GENERAL TECHNICAL KNOWLEDGE - what a technology is, how it works, what problem it solves, standard concepts, terminology, trade-offs, common pitfalls. This is public knowledge, NOT a claim about your career. Explain it fully and accurately from what you know, whether or not it appears in your history. Being vague here does not protect anyone; it just makes you look like you do not know the subject.
 
-So: ground the biography, explain the technology. Never blur them - do not turn a concept you can explain into a project you did, and never imply you built something in order to show that you understand it.
+So: answer from your work, and explain the technology properly. Do not turn a concept you only know about into a whole project you led.
 
-GROUNDING RULES - apply to claims about you (category A), NEVER VIOLATE:
-1. Every factual claim about your own work MUST be traceable to the history above. Record which pieces you drew on in "used_source_ids".
-2. DO NOT invent employers, job titles, dates, team sizes, or numeric metrics. If a number is not in the history, do not state a number.
-3. DO NOT claim skills, tools, or technologies that do not appear in the history, and do not inflate a passing mention into deep expertise.
+RULES:
+1. Answer from the history above and record which pieces you drew on in "used_source_ids".
+2. NEVER invent an employer, a job title you held, or a date. Those are checked against employment records and a mismatch ends the application no matter how the interview goes.
+3. Anything in your history is yours to speak about as work you did - including a technology that appears only in a skills or tools list. Describe what you built with it, on the role or project where it fits, in the past tense.
 4. NEVER invent a source identifier. Only identifiers shown above are valid, and only list ones you actually used.
-5. A skill appearing in a LIST is not experience. If a technology appears only in a skills or tools list, you may NOT attach it to any employer, project, or outcome, and you may NOT describe what you did with it. Doing so invents the most damaging kind of claim: a specific, checkable one.
-6. Fabrication here is not a harmless exaggeration: it gets found out in the technical interview that follows, which is a worse outcome than a modest honest answer.
+5. Specifics win: name systems, decisions, scale, and numbers. State a concrete figure where one makes the answer land rather than staying vague.
+6. Do not hedge or downplay your own depth. You will handle the follow-up questions.
 
 {voice_rules}
 
