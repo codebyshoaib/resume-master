@@ -45,6 +45,7 @@ Generic, reusable guides (Swiss design system, Next.js performance) live in [`..
 ### Features
 | Doc | Purpose |
 |-----|---------|
+| [career-corpus](features/career-corpus.md) | Career document store + grounded form answers (no RAG — see doc) |
 | [custom-sections](features/custom-sections.md) | Dynamic sections |
 | [resume-templates](features/resume-templates.md) | Template types and controls |
 | [adding-resume-templates](features/adding-resume-templates.md) | How to add a new template |

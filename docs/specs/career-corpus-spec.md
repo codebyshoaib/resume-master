@@ -1,7 +1,27 @@
 # Spec — Career Corpus ("career ladder RAG")
 
-Status: **awaiting review — Phase 1 (Specify) of spec-driven workflow.** Do not start implementation until approved.
+Status: **Phases 1–2 shipped. Phases 3–5 specified, not built.**
 Owner: Shoaib · Confidence: high on the data layer, medium on the tailoring integration (see Risks).
+
+| Phase | Deliverable | State |
+|-------|-------------|-------|
+| 1 | Career documents + `/career` UI | **Shipped** |
+| 2 | Context assembly + grounded `/answer` with citations | **Shipped** |
+| 3 | Curated facts (LLM extraction → approval) | Not built |
+| 4 | Ladder assessment + history | Not built |
+| 5 | Tailoring reads the corpus | Not built — **blocked on Risk 1** |
+
+What shipped, what it cost, and what real output forced to change afterwards is
+recorded in [`docs/agent/features/career-corpus.md`](../agent/features/career-corpus.md)
+(the living feature doc) and [`tasks/todo.md`](../../tasks/todo.md) (per-task
+history). This spec is the original reasoning; read the feature doc for current
+behaviour.
+
+**Phases 3–5 are deliberately unplanned.** Phases 1–2 are independently useful
+and touch no existing behaviour, so the premise can be judged against real
+documents before committing to the expensive half. Phase 5 in particular must not
+start until Risk 1 below is designed — it is the only phase that can break
+something already working.
 
 ---
 
