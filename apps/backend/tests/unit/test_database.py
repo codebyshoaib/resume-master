@@ -286,3 +286,78 @@ class TestStatsAndReset:
         assert stats["has_master_resume"] is False
         # Applications are cleared too (no orphans after a full reset).
         assert await db.list_applications() == []
+
+
+class TestCareerDocumentCrud:
+    """The career corpus store (Phase 1 of docs/specs/career-corpus-spec.md)."""
+
+    async def test_create_and_get(self, db):
+        created = await db.create_career_document(
+            title="2024 Review", content="Led the migration.", kind="review", filename="r.pdf"
+        )
+        assert created["document_id"]
+        fetched = await db.get_career_document(created["document_id"])
+        assert fetched is not None
+        assert fetched["title"] == "2024 Review"
+        assert fetched["kind"] == "review"
+        assert fetched["content"] == "Led the migration."
+        assert fetched["filename"] == "r.pdf"
+        # Documents count toward the corpus unless explicitly muted.
+        assert fetched["include_in_context"] is True
+
+    async def test_get_missing_returns_none(self, db):
+        assert await db.get_career_document("nope") is None
+
+    async def test_defaults_kind_to_other(self, db):
+        created = await db.create_career_document(title="Notes", content="x")
+        assert created["kind"] == "other"
+
+    async def test_list_filters_by_kind(self, db):
+        await db.create_career_document(title="a", content="a", kind="review")
+        await db.create_career_document(title="b", content="b", kind="brag")
+        assert len(await db.list_career_documents()) == 2
+        assert len(await db.list_career_documents(kind="review")) == 1
+
+    async def test_list_included_only_excludes_muted(self, db):
+        await db.create_career_document(title="on", content="a")
+        await db.create_career_document(title="off", content="b", include_in_context=False)
+        assert len(await db.list_career_documents()) == 2
+        included = await db.list_career_documents(included_only=True)
+        assert [d["title"] for d in included] == ["on"]
+
+    async def test_update_changes_field_and_timestamp(self, db):
+        created = await db.create_career_document(title="old", content="x")
+        updated = await db.update_career_document(
+            created["document_id"], {"title": "new", "include_in_context": False}
+        )
+        assert updated is not None
+        assert updated["title"] == "new"
+        assert updated["include_in_context"] is False
+        assert updated["updated_at"] >= created["updated_at"]
+
+    async def test_update_missing_returns_none(self, db):
+        assert await db.update_career_document("nope", {"title": "x"}) is None
+
+    async def test_update_ignores_immutable_and_unknown_fields(self, db):
+        created = await db.create_career_document(title="t", content="x")
+        updated = await db.update_career_document(
+            created["document_id"],
+            {"document_id": "hijacked", "created_at": "1999", "bogus": 1, "title": "t2"},
+        )
+        assert updated is not None
+        assert updated["document_id"] == created["document_id"]
+        assert updated["created_at"] == created["created_at"]
+        assert updated["title"] == "t2"
+
+    async def test_delete(self, db):
+        created = await db.create_career_document(title="t", content="x")
+        assert await db.delete_career_document(created["document_id"]) is True
+        assert await db.get_career_document(created["document_id"]) is None
+        assert await db.delete_career_document(created["document_id"]) is False
+
+    async def test_reset_database_clears_career_documents(self, db, tmp_path, monkeypatch):
+        """A full data reset must not leave the user's career corpus behind."""
+        monkeypatch.setattr("app.database.settings.data_dir", tmp_path)
+        await db.create_career_document(title="t", content="x")
+        await db.reset_database()
+        assert await db.list_career_documents() == []

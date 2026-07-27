@@ -45,7 +45,8 @@
     "settings": "设置",
     "backToDashboard": "返回仪表板",
     "goToSettings": "前往设置",
-    "applicationTracker": "申请追踪"
+    "applicationTracker": "申请追踪",
+    "careerCorpus": "职业资料库"
   },
   "dashboard": {
     "title": "仪表板",
@@ -1047,6 +1048,52 @@
       "errors": "错误",
       "warnings": "警告",
       "infos": "提示"
+    }
+  },
+  "career": {
+    "title": "职业资料库",
+    "subtitle": "把你的全部经历集中在一处。",
+    "documents": {
+      "heading": "文档",
+      "empty": "还没有文档。上传一份绩效评估或粘贴一些笔记即可开始。",
+      "summary": "资料库中有 {count} 份文档 · {chars} 个字符",
+      "paste": "粘贴文本",
+      "upload": "上传文件",
+      "uploading": "上传中…",
+      "newTitle": "新文档",
+      "titleLabel": "标题",
+      "kindLabel": "类型",
+      "contentLabel": "内容",
+      "filterAll": "所有类型",
+      "inCorpus": "已纳入",
+      "muted": "已屏蔽",
+      "charCount": "{count} 个字符",
+      "edit": "编辑",
+      "save": "保存",
+      "cancel": "取消",
+      "delete": "删除",
+      "deleteConfirm": "确定删除此文档？此操作无法撤销。",
+      "loading": "加载中…"
+    },
+    "masterResume": {
+      "label": "主简历",
+      "linked": "已关联 — 请在编辑器中修改",
+      "hint": "直接从你的主简历实时读取。不会复制副本，因此永远不会失去同步。"
+    },
+    "kinds": {
+      "review": "绩效评估",
+      "brag": "成就记录",
+      "project": "项目说明",
+      "resume": "简历",
+      "jd": "职位描述",
+      "ladder": "职级体系",
+      "other": "其他"
+    },
+    "errors": {
+      "load": "无法加载你的职业文档。",
+      "save": "无法保存文档。",
+      "delete": "无法删除文档。",
+      "upload": "无法上传文件。"
     }
   }
 }

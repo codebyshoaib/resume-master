@@ -45,7 +45,8 @@
     "settings": "Configuración",
     "backToDashboard": "Volver al Panel",
     "goToSettings": "Ir a Configuración",
-    "applicationTracker": "Seguimiento de candidaturas"
+    "applicationTracker": "Seguimiento de candidaturas",
+    "careerCorpus": "Corpus profesional"
   },
   "dashboard": {
     "title": "Panel",
@@ -1047,6 +1048,52 @@
       "errors": "Errores",
       "warnings": "Advertencias",
       "infos": "Información"
+    }
+  },
+  "career": {
+    "title": "Corpus profesional",
+    "subtitle": "Todo lo que has hecho, en un solo lugar.",
+    "documents": {
+      "heading": "Documentos",
+      "empty": "Aún no hay documentos. Sube una evaluación de desempeño o pega algunas notas para empezar.",
+      "summary": "{count} documentos · {chars} caracteres en el corpus",
+      "paste": "Pegar texto",
+      "upload": "Subir archivo",
+      "uploading": "Subiendo…",
+      "newTitle": "Nuevo documento",
+      "titleLabel": "Título",
+      "kindLabel": "Tipo",
+      "contentLabel": "Contenido",
+      "filterAll": "Todos los tipos",
+      "inCorpus": "En el corpus",
+      "muted": "Silenciado",
+      "charCount": "{count} caracteres",
+      "edit": "Editar",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar este documento? Esta acción no se puede deshacer.",
+      "loading": "Cargando…"
+    },
+    "masterResume": {
+      "label": "Currículum maestro",
+      "linked": "Vinculado: edítalo en el Editor",
+      "hint": "Se lee en vivo desde tu currículum maestro. Nunca se copia, así que no puede desincronizarse."
+    },
+    "kinds": {
+      "review": "Evaluación de desempeño",
+      "brag": "Documento de logros",
+      "project": "Descripción de proyecto",
+      "resume": "Currículum",
+      "jd": "Descripción del puesto",
+      "ladder": "Escala profesional",
+      "other": "Otro"
+    },
+    "errors": {
+      "load": "No se pudieron cargar tus documentos profesionales.",
+      "save": "No se pudo guardar el documento.",
+      "delete": "No se pudo eliminar el documento.",
+      "upload": "No se pudo subir el archivo."
     }
   }
 }

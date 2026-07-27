@@ -49,7 +49,7 @@ class TestUploadGuards:
             )
         assert resp.status_code == 413
 
-    @patch("app.routers.resumes.parse_document", new_callable=AsyncMock)
+    @patch("app.routers._uploads.parse_document", new_callable=AsyncMock)
     async def test_rejects_empty_extracted_text(self, mock_parse, client):
         """#794: a valid-but-image-based PDF parses to empty text → 422,
         and we must NOT persist anything to the database."""
@@ -64,7 +64,7 @@ class TestUploadGuards:
         assert "extract text" in resp.json()["detail"].lower()
         mock_db.create_resume_atomic_master.assert_not_called()
 
-    @patch("app.routers.resumes.parse_document", new_callable=AsyncMock)
+    @patch("app.routers._uploads.parse_document", new_callable=AsyncMock)
     async def test_maps_parse_failure_to_422(self, mock_parse, client):
         """A parser exception is surfaced as a generic 422, not a 500."""
         mock_parse.side_effect = RuntimeError("corrupt file")

@@ -137,3 +137,45 @@ export async function apiDelete(endpoint: string): Promise<Response> {
 export function getUploadUrl(): string {
   return `${API_BASE}/resumes/upload`;
 }
+
+/**
+ * Coerces a FastAPI error body to a displayable string.
+ *
+ * FastAPI returns `detail` as a string for HTTPException but as an array of
+ * `{ msg, loc, ... }` objects for validation errors — both must render as text
+ * so error messages never surface as "[object Object]".
+ */
+export function extractDetail(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const detail = (data as { detail?: unknown }).detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((d) =>
+        d && typeof d === 'object' && 'msg' in d ? String((d as { msg: unknown }).msg) : null
+      )
+      .filter((m): m is string => Boolean(m));
+    if (messages.length > 0) return messages.join('; ');
+  }
+  // A dict detail (e.g. HTTPException(detail={...})) — stringify so it reads as
+  // something rather than "[object Object]".
+  if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+    try {
+      return JSON.stringify(detail);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Parses a JSON response, throwing the backend's own message on failure.
+ */
+export async function asJson<T>(res: Response, fallback: string): Promise<T> {
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(extractDetail(data) || `${fallback} (status ${res.status}).`);
+  }
+  return res.json() as Promise<T>;
+}

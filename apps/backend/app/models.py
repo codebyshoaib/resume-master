@@ -122,6 +122,42 @@ class Application(Base):
     updated_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)
 
 
+class CareerDocument(Base):
+    """A raw career artifact: performance review, brag doc, project write-up, …
+
+    The source material the career corpus is assembled from. Append-mostly —
+    documents are the record of what happened, not a working document.
+
+    The master resume is deliberately **not** stored here. It is read live from
+    ``resumes`` when the corpus is assembled, so there is no second copy to keep
+    in sync and no conflict case to resolve. See
+    ``docs/specs/career-corpus-spec.md``.
+
+    ``create_all`` cannot add columns to an existing table (see the ALTER in
+    ``db_engine.init_models_sync``), so any field added here after release costs
+    a hand-written migration. Deliberately no ``metadata_json`` escape hatch:
+    ``Job`` has one because JD-pipeline fields are genuinely dynamic, whereas
+    this shape is stable, and an escape hatch invites unversioned sludge.
+    """
+
+    __tablename__ = "career_documents"
+
+    document_id: Mapped[str] = mapped_column(String, primary_key=True)
+    title: Mapped[str] = mapped_column(String)
+    # resume | review | brag | project | jd | ladder | other
+    kind: Mapped[str] = mapped_column(String, default="other")
+    content: Mapped[str] = mapped_column(Text)
+    filename: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Lets a document be muted from the corpus without deleting it.
+    include_in_context: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)
+    updated_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)
+
+    # ponytail: no indexes on kind/include_in_context — the corpus is tens of
+    # rows, so a full scan is faster than the index. Add them if it ever grows
+    # to the point where FTS5 is also on the table.
+
+
 class AnalyticsEvent(Base):
     """A local, PII-free product-analytics event (self-hosted only).
 

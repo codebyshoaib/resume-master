@@ -76,6 +76,18 @@ from app.schemas.applications import (
     ManualApplicationCreate,
 )
 from app.schemas.analytics import AnalyticsFunnel, AnalyticsSummaryResponse
+from app.schemas.career import (
+    CareerContextStats,
+    CareerDocumentCreate,
+    CareerDocumentKind,
+    CareerDocumentListResponse,
+    CareerDocumentResponse,
+    CareerDocumentSummary,
+    CareerDocumentUpdate,
+    CareerSourceKind,
+    CareerSourceRef,
+    PREVIEW_CHARS,
+)
 
 __all__ = [
     "PersonalInfo",
@@ -151,4 +163,14 @@ __all__ = [
     "ApplicationActionResponse",
     "AnalyticsFunnel",
     "AnalyticsSummaryResponse",
+    "CareerDocumentKind",
+    "CareerDocumentCreate",
+    "CareerDocumentUpdate",
+    "CareerDocumentSummary",
+    "CareerDocumentResponse",
+    "CareerDocumentListResponse",
+    "CareerSourceKind",
+    "CareerSourceRef",
+    "CareerContextStats",
+    "PREVIEW_CHARS",
 ]
