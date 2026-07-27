@@ -147,3 +147,76 @@ class TestAnswerCareerQuestion:
         with patch.object(career_service, "complete_json", new=capture):
             await career_service.answer_career_question("q")
         assert "Led the SQLite migration." in captured["prompt"]
+
+
+class TestAnswerVoice:
+    """Regression tests for the first unusable answer shipped by this feature.
+
+    It was correctly grounded but nobody could paste it: it narrated the corpus
+    ("as it is listed among my technical skills in my resume"), leaked the gap
+    into the answer body, and used typography that web forms mangle.
+    """
+
+    async def test_strips_typography_that_breaks_form_paste(self, seeded):
+        with _llm(
+            {
+                # The real failing answer contained U+2011 in "full-stack".
+                "answer": "My full‑stack work — mostly Django – covered “APIs”…",
+                "used_source_ids": [],
+                "gaps": [],
+            }
+        ):
+            result = await career_service.answer_career_question("q")
+        assert result["answer"] == 'My full-stack work - mostly Django - covered "APIs"...'
+        assert result["answer"].isascii()
+
+    async def test_preserves_legitimate_non_ascii(self, seeded):
+        """Only known offenders are replaced; accented names must survive."""
+        with _llm({"answer": "I worked with Björn on it.", "used_source_ids": [], "gaps": []}):
+            result = await career_service.answer_career_question("q")
+        assert result["answer"] == "I worked with Björn on it."
+
+    async def test_prompt_forbids_narrating_the_corpus(self, seeded):
+        captured: dict[str, str] = {}
+
+        async def capture(prompt, **kwargs):
+            captured["prompt"] = prompt
+            return {"answer": "a", "used_source_ids": [], "gaps": []}
+
+        with patch.object(career_service, "complete_json", new=capture):
+            await career_service.answer_career_question("q")
+        prompt = captured["prompt"]
+        # The instruction that stops "as it is listed in my resume" answers.
+        assert "NEVER mention sources" in prompt
+        # The instruction that keeps caveats out of the answer body.
+        assert '"gaps" field' in prompt
+        # Anti-AI-voice guard, including the exact phrase the bad answer used.
+        assert "hands-on familiarity" in prompt
+        assert "ASCII characters only" in prompt
+
+    async def test_prompt_handles_thin_evidence_without_hedging(self, seeded):
+        captured: dict[str, str] = {}
+
+        async def capture(prompt, **kwargs):
+            captured["prompt"] = prompt
+            return {"answer": "a", "used_source_ids": [], "gaps": []}
+
+        with patch.object(career_service, "complete_json", new=capture):
+            await career_service.answer_career_question("Have you used GraphQL?")
+        prompt = captured["prompt"]
+        assert "WHEN YOUR EXPERIENCE IS THIN" in prompt
+        # Thin evidence must not license invention.
+        assert "never invent a project" in prompt.lower()
+
+    async def test_prompt_still_forbids_fabrication(self, seeded):
+        captured: dict[str, str] = {}
+
+        async def capture(prompt, **kwargs):
+            captured["prompt"] = prompt
+            return {"answer": "a", "used_source_ids": [], "gaps": []}
+
+        with patch.object(career_service, "complete_json", new=capture):
+            await career_service.answer_career_question("q")
+        prompt = captured["prompt"]
+        assert "DO NOT invent employers" in prompt
+        assert "do not inflate a passing mention into deep expertise" in prompt

@@ -21,7 +21,7 @@ from app.config_cache import get_content_language
 from app.database import db
 from app.llm import complete_json
 from app.prompts import get_language_name
-from app.prompts.career import CAREER_ANSWER_PROMPT
+from app.prompts.career import build_career_answer_prompt
 
 # The corpus now flows into every prompt that reads it, which is a wider
 # injection surface than a single resume upload was. Reusing the tailoring
@@ -69,6 +69,36 @@ def _master_resume_text(resume: dict[str, Any]) -> str:
     if content.strip():
         return content
     return resume.get("original_markdown") or ""
+
+
+# Typographic characters models emit freely but web form fields mangle, and which
+# read as machine-written when they survive. The answer is going to be pasted
+# into someone else's textarea, so normalise before it ever reaches the client.
+_TYPOGRAPHY = {
+    "—": "-",  # em dash
+    "–": "-",  # en dash
+    "‑": "-",  # non-breaking hyphen
+    "‒": "-",  # figure dash
+    "‘": "'",
+    "’": "'",
+    "‚": "'",
+    "“": '"',
+    "”": '"',
+    "…": "...",
+    " ": " ",  # non-breaking space
+    "​": "",  # zero-width space
+}
+
+
+def _plain_ascii(text: str) -> str:
+    """Replace typography that breaks paste-into-a-form with ASCII equivalents.
+
+    Only substitutes known offenders; any other non-ASCII (accented names,
+    non-Latin scripts for a non-English content language) is left intact.
+    """
+    for fancy, plain in _TYPOGRAPHY.items():
+        text = text.replace(fancy, plain)
+    return text
 
 
 def _render(source: CareerSource, body: str) -> str:
@@ -177,16 +207,16 @@ async def answer_career_question(
     if not sources:
         raise ValueError("empty_corpus")
 
-    prompt = CAREER_ANSWER_PROMPT.format(
+    prompt = build_career_answer_prompt(
         context=context,
         question=sanitize_user_input(question),
-        tone=tone or "professional, first-person, concrete",
+        tone=tone or "direct, first-person, specific; the way you would talk, not write",
         max_words=max_words,
         output_language=get_language_name(get_content_language()),
     )
     data = await complete_json(prompt, schema_type="career_answer", max_tokens=2048)
 
-    answer = str(data.get("answer") or "").strip()
+    answer = _plain_ascii(str(data.get("answer") or "").strip())
     if not answer:
         raise RuntimeError("model returned no answer text")
 
