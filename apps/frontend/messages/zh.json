@@ -1094,6 +1094,24 @@
       "save": "无法保存文档。",
       "delete": "无法删除文档。",
       "upload": "无法上传文件。"
+    },
+    "answer": {
+      "heading": "回答表单问题",
+      "subtitle": "粘贴申请表中的问题。回答仅取自你自己的经历。",
+      "questionLabel": "问题",
+      "placeholder": "请描述一次你在没有正式职权的情况下主导项目的经历…",
+      "toneLabel": "语气",
+      "maxWordsLabel": "字数上限",
+      "ask": "生成回答",
+      "asking": "思考中…",
+      "answerLabel": "回答",
+      "sourcesLabel": "依据来源",
+      "gapsLabel": "你的经历无法支撑的内容",
+      "noSources": "未引用任何来源——请谨慎对待此回答。",
+      "truncated": "你的资料库过大，无法全部纳入。部分文档已被省略。",
+      "emptyCorpus": "请先添加文档——回答的质量取决于你提供的内容。",
+      "copy": "复制",
+      "copied": "已复制"
     }
   }
 }

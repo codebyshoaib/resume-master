@@ -28,7 +28,12 @@ import { DocumentEditorDialog } from './document-editor-dialog';
 // this only spares the user a round-trip to learn the file is unsupported.
 const ACCEPT = '.pdf,.doc,.docx,.txt,.md';
 
-export function CareerDocuments() {
+interface CareerDocumentsProps {
+  /** Called after any change that alters the corpus, so callers can refresh stats. */
+  onCorpusChanged?: () => void;
+}
+
+export function CareerDocuments({ onCorpusChanged }: CareerDocumentsProps = {}) {
   const { t } = useTranslations();
   const [documents, setDocuments] = useState<CareerDocumentSummary[]>([]);
   const [master, setMaster] = useState<ResumeListItem | null>(null);
@@ -50,8 +55,9 @@ export function CareerDocuments() {
       setError(e instanceof Error ? e.message : t('career.errors.load'));
     } finally {
       setLoading(false);
+      onCorpusChanged?.();
     }
-  }, [t]);
+  }, [t, onCorpusChanged]);
 
   useEffect(() => {
     void load();

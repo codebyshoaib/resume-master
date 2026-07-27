@@ -77,6 +77,8 @@ from app.schemas.applications import (
 )
 from app.schemas.analytics import AnalyticsFunnel, AnalyticsSummaryResponse
 from app.schemas.career import (
+    CareerAnswerRequest,
+    CareerAnswerResponse,
     CareerContextStats,
     CareerDocumentCreate,
     CareerDocumentKind,
@@ -172,5 +174,7 @@ __all__ = [
     "CareerSourceKind",
     "CareerSourceRef",
     "CareerContextStats",
+    "CareerAnswerRequest",
+    "CareerAnswerResponse",
     "PREVIEW_CHARS",
 ]

@@ -112,3 +112,52 @@ export async function deleteCareerDocument(documentId: string): Promise<void> {
     throw new Error(extractDetail(data) || `Failed to delete document (status ${res.status}).`);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Grounded answers (Phase 2)
+// ---------------------------------------------------------------------------
+
+// Where a cited source came from. `document` and `master_resume` today; `fact`
+// arrives in Phase 3 without changing this contract.
+export type CareerSourceKind = 'master_resume' | 'document' | 'fact';
+
+export interface CareerSourceRef {
+  source_id: string;
+  kind: CareerSourceKind;
+  title: string;
+}
+
+export interface CareerAnswer {
+  answer: string;
+  // The verification surface: how the user confirms the answer quoted a real
+  // job. Ids the model invents are dropped server-side and never appear here.
+  used_sources: CareerSourceRef[];
+  gaps: string[];
+  truncated: boolean;
+}
+
+export interface CareerAnswerRequest {
+  question: string;
+  tone?: string;
+  max_words?: number;
+}
+
+export interface CareerContextStats {
+  source_count: number;
+  document_count: number;
+  fact_count: number;
+  approx_chars: number;
+  truncated: boolean;
+}
+
+// Answer an application-form question from the corpus, with citations.
+export async function answerCareerQuestion(payload: CareerAnswerRequest): Promise<CareerAnswer> {
+  const res = await apiPost('/career/answer', payload);
+  return asJson<CareerAnswer>(res, 'Failed to answer the question');
+}
+
+// Corpus size — lets the UI show emptiness instead of degrading quietly.
+export async function fetchCareerContextStats(): Promise<CareerContextStats> {
+  const res = await apiFetch('/career/context/stats', { credentials: 'include' });
+  return asJson<CareerContextStats>(res, 'Failed to read the career corpus');
+}

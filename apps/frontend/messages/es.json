@@ -1094,6 +1094,24 @@
       "save": "No se pudo guardar el documento.",
       "delete": "No se pudo eliminar el documento.",
       "upload": "No se pudo subir el archivo."
+    },
+    "answer": {
+      "heading": "Responder una pregunta de formulario",
+      "subtitle": "Pega una pregunta de una solicitud. La respuesta se basa únicamente en tu propia trayectoria.",
+      "questionLabel": "Pregunta",
+      "placeholder": "Describe una ocasión en la que lideraste un proyecto sin autoridad formal…",
+      "toneLabel": "Tono",
+      "maxWordsLabel": "Límite de palabras",
+      "ask": "Responder",
+      "asking": "Pensando…",
+      "answerLabel": "Respuesta",
+      "sourcesLabel": "Basado en",
+      "gapsLabel": "No respaldado por tu trayectoria",
+      "noSources": "No se citó ninguna fuente: trata esta respuesta con desconfianza.",
+      "truncated": "Tu corpus era demasiado grande para incluirlo completo. Se omitieron algunos documentos.",
+      "emptyCorpus": "Añade primero un documento: las respuestas valen tanto como lo que aportes.",
+      "copy": "Copiar",
+      "copied": "Copiado"
     }
   }
 }

@@ -1094,6 +1094,24 @@
       "save": "Could not save the document.",
       "delete": "Could not delete the document.",
       "upload": "Could not upload the file."
+    },
+    "answer": {
+      "heading": "Answer a form question",
+      "subtitle": "Paste a question from an application. The answer is drawn only from your own history.",
+      "questionLabel": "Question",
+      "placeholder": "Describe a time you led a project without formal authority…",
+      "toneLabel": "Tone",
+      "maxWordsLabel": "Word limit",
+      "ask": "Answer it",
+      "asking": "Thinking…",
+      "answerLabel": "Answer",
+      "sourcesLabel": "Based on",
+      "gapsLabel": "Not supported by your history",
+      "noSources": "No source cited — treat this answer with suspicion.",
+      "truncated": "Your corpus was too large to include in full. Some documents were left out.",
+      "emptyCorpus": "Add a document first — answers are only as good as what you put in.",
+      "copy": "Copy",
+      "copied": "Copied"
     }
   }
 }

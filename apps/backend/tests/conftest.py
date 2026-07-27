@@ -2,6 +2,7 @@
 
 import copy
 import importlib
+import pkgutil
 
 import pytest
 
@@ -183,10 +184,32 @@ def sample_changes():
 # Isolated database — swap the global TinyDB singleton for a temp-file DB
 # ---------------------------------------------------------------------------
 
+def _modules_binding_db() -> list[object]:
+    """Every imported ``app.routers.*`` / ``app.services.*`` module with a ``db``.
+
+    Discovered rather than hand-listed. ``from app.database import db`` binds the
+    singleton into the importing module's namespace, so patching only
+    ``app.database.db`` leaves those bindings pointing at the developer's real
+    database. A hand-maintained list silently rots the moment a new module does
+    that import — which is exactly how ``app.services.career`` first escaped.
+    """
+    modules = []
+    for package_name in ("app.routers", "app.services"):
+        package = importlib.import_module(package_name)
+        for info in pkgutil.iter_modules(package.__path__):
+            try:
+                module = importlib.import_module(f"{package_name}.{info.name}")
+            except ModuleNotFoundError:  # pragma: no cover - defensive
+                continue
+            if hasattr(module, "db"):
+                modules.append(module)
+    return modules
+
+
 @pytest.fixture
 async def isolated_db(tmp_path, monkeypatch):
     """Replace the global ``db`` singleton with a disposable temp-file SQLite DB
-    across ``app.database`` and every router module that imported it.
+    across ``app.database`` and every module that imported it.
 
     Lets endpoint / e2e tests run against a REAL (but isolated) database instead
     of a MagicMock, so persistence, the master-resume invariant, and CRUD are
@@ -200,23 +223,8 @@ async def isolated_db(tmp_path, monkeypatch):
 
     test_db = Database(db_path=tmp_path / "isolated_db.db")
     monkeypatch.setattr(database_module, "db", test_db)
-    for router_name in (
-        "resumes",
-        "jobs",
-        "enrichment",
-        "config",
-        "health",
-        "applications",
-        "resume_wizard",
-        "analytics",
-        "career",
-    ):
-        try:
-            module = importlib.import_module(f"app.routers.{router_name}")
-        except ModuleNotFoundError:
-            continue
-        if hasattr(module, "db"):
-            monkeypatch.setattr(module, "db", test_db)
+    for module in _modules_binding_db():
+        monkeypatch.setattr(module, "db", test_db)
     try:
         yield test_db
     finally:

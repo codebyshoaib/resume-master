@@ -101,3 +101,28 @@ class CareerContextStats(BaseModel):
     fact_count: int
     approx_chars: int
     truncated: bool
+
+
+class CareerAnswerRequest(BaseModel):
+    """An application-form question to answer from the corpus."""
+
+    question: str = Field(min_length=1, max_length=4000)
+    tone: str | None = Field(default=None, max_length=200)
+    max_words: int = Field(default=250, ge=30, le=1000)
+
+
+class CareerAnswerResponse(BaseModel):
+    """A grounded answer plus the evidence behind it.
+
+    ``used_sources`` is the verification surface: it is how the user confirms the
+    answer quoted a real job rather than a plausible one. Ids the model invents
+    are dropped server-side and never appear here.
+
+    An answer with empty ``used_sources`` and non-empty ``gaps`` is a valid,
+    useful response — "I have no evidence for this, here is what's missing".
+    """
+
+    answer: str
+    used_sources: list[CareerSourceRef]
+    gaps: list[str]
+    truncated: bool

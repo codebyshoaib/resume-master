@@ -17,6 +17,9 @@ from app.routers._uploads import (
     read_and_extract,
 )
 from app.schemas import (
+    CareerAnswerRequest,
+    CareerAnswerResponse,
+    CareerContextStats,
     CareerDocumentCreate,
     CareerDocumentKind,
     CareerDocumentListResponse,
@@ -25,6 +28,7 @@ from app.schemas import (
     CareerDocumentUpdate,
     PREVIEW_CHARS,
 )
+from app.services.career import answer_career_question, context_stats
 
 logger = logging.getLogger(__name__)
 
@@ -150,3 +154,38 @@ async def delete_career_document(document_id: str) -> None:
     """Delete a document. 404 when it does not exist, so retries are honest."""
     if not await db.delete_career_document(document_id):
         raise HTTPException(status_code=404, detail="Document not found")
+
+
+@router.get("/context/stats", response_model=CareerContextStats)
+async def get_career_context_stats() -> CareerContextStats:
+    """Corpus size. Lets the UI show an empty corpus instead of degrading quietly."""
+    try:
+        return CareerContextStats(**await context_stats())
+    except Exception as e:
+        logger.error(f"Career context stats failed: {e}")
+        raise HTTPException(status_code=500, detail="Could not read the career corpus.")
+
+
+@router.post("/answer", response_model=CareerAnswerResponse)
+async def answer_question(payload: CareerAnswerRequest) -> CareerAnswerResponse:
+    """Answer an application-form question from the career corpus, with citations."""
+    try:
+        result = await answer_career_question(
+            payload.question, tone=payload.tone, max_words=payload.max_words
+        )
+    except ValueError as e:
+        # An empty corpus is a user-fixable state, not a server fault. Returning
+        # 422 keeps the alternative — an ungrounded, invented answer — impossible.
+        if str(e) == "empty_corpus":
+            raise HTTPException(
+                status_code=422,
+                detail="No career material yet. Add a document first.",
+            )
+        logger.error(f"Career answer rejected: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate an answer.")
+    except Exception as e:
+        logger.error(f"Career answer failed: {e}")
+        raise HTTPException(
+            status_code=500, detail="Could not generate an answer. Please try again."
+        )
+    return CareerAnswerResponse(**result)

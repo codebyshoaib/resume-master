@@ -1094,6 +1094,24 @@
       "save": "Impossible d'enregistrer le document.",
       "delete": "Impossible de supprimer le document.",
       "upload": "Impossible d'importer le fichier."
+    },
+    "answer": {
+      "heading": "Répondre à une question de formulaire",
+      "subtitle": "Collez une question de candidature. La réponse s'appuie uniquement sur votre propre parcours.",
+      "questionLabel": "Question",
+      "placeholder": "Décrivez une situation où vous avez mené un projet sans autorité formelle…",
+      "toneLabel": "Ton",
+      "maxWordsLabel": "Limite de mots",
+      "ask": "Répondre",
+      "asking": "Réflexion…",
+      "answerLabel": "Réponse",
+      "sourcesLabel": "Fondé sur",
+      "gapsLabel": "Non étayé par votre parcours",
+      "noSources": "Aucune source citée — considérez cette réponse avec méfiance.",
+      "truncated": "Votre corpus était trop volumineux pour être inclus en entier. Certains documents ont été omis.",
+      "emptyCorpus": "Ajoutez d'abord un document : la qualité des réponses dépend de ce que vous fournissez.",
+      "copy": "Copier",
+      "copied": "Copié"
     }
   }
 }

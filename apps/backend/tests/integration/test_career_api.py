@@ -232,3 +232,113 @@ class TestUploadWiring:
         assert resp.status_code == 422
         assert "extract text" in resp.json()["detail"].lower()
         assert listing.json()["documents"] == []
+
+
+class TestAnswerEndpoint:
+    """Phase 2: grounded answers. The LLM is mocked — no network calls."""
+
+    async def test_empty_corpus_returns_422_not_an_answer(self, isolated_db, client):
+        async with client:
+            resp = await client.post("/api/v1/career/answer", json={"question": "Tell me."})
+        assert resp.status_code == 422
+        assert "career material" in resp.json()["detail"].lower()
+
+    @patch("app.services.career.complete_json", new_callable=AsyncMock)
+    async def test_returns_answer_with_citations(self, mock_llm, isolated_db, client):
+        async with client:
+            doc = await _create(client, kind="review")
+            mock_llm.return_value = {
+                "answer": "I led the migration.",
+                "used_source_ids": [doc["document_id"]],
+                "gaps": [],
+            }
+            resp = await client.post(
+                "/api/v1/career/answer", json={"question": "Describe a migration."}
+            )
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert body["answer"] == "I led the migration."
+        assert body["used_sources"][0]["source_id"] == doc["document_id"]
+        assert body["used_sources"][0]["kind"] == "document"
+        assert body["truncated"] is False
+
+    @patch("app.services.career.complete_json", new_callable=AsyncMock)
+    async def test_fabricated_citations_never_reach_the_client(
+        self, mock_llm, isolated_db, client
+    ):
+        async with client:
+            await _create(client)
+            mock_llm.return_value = {
+                "answer": "I did the thing.",
+                "used_source_ids": ["invented-id"],
+                "gaps": [],
+            }
+            resp = await client.post("/api/v1/career/answer", json={"question": "q"})
+        assert resp.status_code == 200
+        assert resp.json()["used_sources"] == []
+
+    @patch("app.services.career.complete_json", new_callable=AsyncMock)
+    async def test_muted_document_cannot_be_cited(self, mock_llm, isolated_db, client):
+        """A muted document is not in the corpus, so its id must not resolve."""
+        async with client:
+            doc = await _create(client)
+            await client.patch(
+                f"/api/v1/career/documents/{doc['document_id']}",
+                json={"include_in_context": False},
+            )
+            mock_llm.return_value = {
+                "answer": "a",
+                "used_source_ids": [doc["document_id"]],
+                "gaps": [],
+            }
+            resp = await client.post("/api/v1/career/answer", json={"question": "q"})
+        # Corpus is now empty, so this is a 422 rather than a citation.
+        assert resp.status_code == 422
+
+    @patch("app.services.career.complete_json", new_callable=AsyncMock)
+    async def test_llm_failure_maps_to_500_with_a_generic_message(
+        self, mock_llm, isolated_db, client
+    ):
+        async with client:
+            await _create(client)
+            mock_llm.side_effect = RuntimeError("provider exploded")
+            resp = await client.post("/api/v1/career/answer", json={"question": "q"})
+        assert resp.status_code == 500
+        # Server-side detail must not leak to the client.
+        assert "provider exploded" not in resp.text
+
+    async def test_rejects_empty_question(self, isolated_db, client):
+        async with client:
+            resp = await client.post("/api/v1/career/answer", json={"question": ""})
+        assert resp.status_code == 422
+
+    async def test_rejects_out_of_range_max_words(self, isolated_db, client):
+        async with client:
+            resp = await client.post(
+                "/api/v1/career/answer", json={"question": "q", "max_words": 9999}
+            )
+        assert resp.status_code == 422
+
+
+class TestContextStatsEndpoint:
+    async def test_reports_an_empty_corpus(self, isolated_db, client):
+        async with client:
+            resp = await client.get("/api/v1/career/context/stats")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["source_count"] == 0
+        assert body["document_count"] == 0
+        assert body["approx_chars"] == 0
+        assert body["truncated"] is False
+
+    async def test_counts_only_included_documents(self, isolated_db, client):
+        async with client:
+            kept = await _create(client, title="kept")
+            muted = await _create(client, title="muted")
+            await client.patch(
+                f"/api/v1/career/documents/{muted['document_id']}",
+                json={"include_in_context": False},
+            )
+            resp = await client.get("/api/v1/career/context/stats")
+        assert resp.json()["document_count"] == 1
+        assert kept["document_id"]

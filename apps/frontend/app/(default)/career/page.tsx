@@ -1,13 +1,29 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import ArrowLeft from 'lucide-react/dist/esm/icons/arrow-left';
+import { CareerAnswerPanel } from '@/components/career/career-answer';
 import { CareerDocuments } from '@/components/career/career-documents';
 import { useTranslations } from '@/lib/i18n';
+import { fetchCareerContextStats } from '@/lib/api/career';
 
 export default function CareerPage() {
   const { t } = useTranslations();
+  const [sourceCount, setSourceCount] = useState(0);
+
+  // Kept in sync with the documents panel so an empty corpus disables asking
+  // rather than producing a 422 the user has to interpret.
+  const refreshStats = useCallback(() => {
+    fetchCareerContextStats()
+      .then((stats) => setSourceCount(stats.source_count))
+      .catch(() => setSourceCount(0));
+  }, []);
+
+  useEffect(() => {
+    refreshStats();
+  }, [refreshStats]);
+
   return (
     <main
       className="min-h-[100dvh] w-full bg-background px-4 py-6 md:px-8"
@@ -37,8 +53,9 @@ export default function CareerPage() {
             </p>
           </div>
 
-          <div className="p-4 md:p-6">
-            <CareerDocuments />
+          <div className="space-y-6 p-4 md:p-6">
+            <CareerAnswerPanel sourceCount={sourceCount} />
+            <CareerDocuments onCorpusChanged={refreshStats} />
           </div>
         </div>
       </div>
