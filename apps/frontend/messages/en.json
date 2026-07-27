@@ -45,7 +45,8 @@
     "settings": "Settings",
     "backToDashboard": "Back to Dashboard",
     "goToSettings": "Go to Settings",
-    "applicationTracker": "Application Tracker"
+    "applicationTracker": "Application Tracker",
+    "careerCorpus": "Career Corpus"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1047,6 +1048,70 @@
       "errors": "Errors",
       "warnings": "Warnings",
       "infos": "Info"
+    }
+  },
+  "career": {
+    "title": "Career Corpus",
+    "subtitle": "Everything you've done, in one place.",
+    "documents": {
+      "heading": "Documents",
+      "empty": "No documents yet. Upload a performance review or paste some notes to get started.",
+      "summary": "{count} documents · {chars} characters in corpus",
+      "paste": "Paste text",
+      "upload": "Upload file",
+      "uploading": "Uploading…",
+      "newTitle": "New document",
+      "titleLabel": "Title",
+      "kindLabel": "Type",
+      "contentLabel": "Content",
+      "filterAll": "All types",
+      "inCorpus": "In corpus",
+      "muted": "Muted",
+      "charCount": "{count} chars",
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this document? This cannot be undone.",
+      "loading": "Loading…"
+    },
+    "masterResume": {
+      "label": "Master résumé",
+      "linked": "Linked — edit in Builder",
+      "hint": "Read live from your master résumé. Never copied, so it cannot fall out of sync."
+    },
+    "kinds": {
+      "review": "Performance review",
+      "brag": "Brag doc",
+      "project": "Project write-up",
+      "resume": "Résumé",
+      "jd": "Job description",
+      "ladder": "Career ladder",
+      "other": "Other"
+    },
+    "errors": {
+      "load": "Could not load your career documents.",
+      "save": "Could not save the document.",
+      "delete": "Could not delete the document.",
+      "upload": "Could not upload the file."
+    },
+    "answer": {
+      "heading": "Answer a form question",
+      "subtitle": "Paste a question from an application. The answer is drawn only from your own history.",
+      "questionLabel": "Question",
+      "placeholder": "Describe a time you led a project without formal authority…",
+      "toneLabel": "Tone",
+      "maxWordsLabel": "Word limit",
+      "ask": "Answer it",
+      "asking": "Thinking…",
+      "answerLabel": "Answer",
+      "sourcesLabel": "Based on",
+      "gapsLabel": "Not supported by your history",
+      "noSources": "No source cited — treat this answer with suspicion.",
+      "truncated": "Your corpus was too large to include in full. Some documents were left out.",
+      "emptyCorpus": "Add a document first — answers are only as good as what you put in.",
+      "copy": "Copy",
+      "copied": "Copied"
     }
   }
 }

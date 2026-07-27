@@ -46,7 +46,7 @@ class TestAnalyticsSummaryAPI:
         assert resp.status_code == 422
 
     @patch("app.routers.resumes.parse_resume_to_json", new_callable=AsyncMock)
-    @patch("app.routers.resumes.parse_document", new_callable=AsyncMock)
+    @patch("app.routers._uploads.parse_document", new_callable=AsyncMock)
     async def test_upload_endpoint_emits_resume_uploaded(
         self, mock_parse_document, mock_parse_json, isolated_db, sample_resume
     ):

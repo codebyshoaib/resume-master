@@ -60,7 +60,7 @@ async def _upload_resume(isolated_db, sample_resume):
     markdown = "# Jane Doe\nSenior Backend Engineer\njane@example.com\n"
     with (
         patch(
-            "app.routers.resumes.parse_document",
+            "app.routers._uploads.parse_document",
             new_callable=AsyncMock,
             return_value=markdown,
         ),

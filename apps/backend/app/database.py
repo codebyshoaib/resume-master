@@ -25,7 +25,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db_engine import init_models_sync, make_async_engine, make_sync_engine
-from app.models import AnalyticsEvent, ApiKey, Application, Improvement, Job, Resume
+from app.models import (
+    AnalyticsEvent,
+    ApiKey,
+    Application,
+    CareerDocument,
+    Improvement,
+    Job,
+    Resume,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +181,19 @@ class Database:
             "applied_at": row.applied_at,
             "notes": row.notes,
             "position": row.position,
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        }
+
+    @staticmethod
+    def _career_document_to_dict(row: CareerDocument) -> dict[str, Any]:
+        return {
+            "document_id": row.document_id,
+            "title": row.title,
+            "kind": row.kind,
+            "content": row.content,
+            "filename": row.filename,
+            "include_in_context": row.include_in_context,
             "created_at": row.created_at,
             "updated_at": row.updated_at,
         }
@@ -803,15 +824,110 @@ class Database:
                 "has_master_resume": master.first() is not None,
             }
 
+    # -- Career corpus operations -------------------------------------------
+
+    async def create_career_document(
+        self,
+        title: str,
+        content: str,
+        kind: str = "other",
+        filename: str | None = None,
+        include_in_context: bool = True,
+    ) -> dict[str, Any]:
+        """Create a career document."""
+        document_id = str(uuid4())
+        now = _now()
+        async with self._session() as session:
+            session.add(
+                CareerDocument(
+                    document_id=document_id,
+                    title=title,
+                    kind=kind,
+                    content=content,
+                    filename=filename,
+                    include_in_context=include_in_context,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            await session.commit()
+        return {
+            "document_id": document_id,
+            "title": title,
+            "kind": kind,
+            "content": content,
+            "filename": filename,
+            "include_in_context": include_in_context,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+    async def get_career_document(self, document_id: str) -> dict[str, Any] | None:
+        """Get a career document by ID."""
+        async with self._session() as session:
+            row = await session.get(CareerDocument, document_id)
+            return self._career_document_to_dict(row) if row else None
+
+    async def list_career_documents(
+        self, kind: str | None = None, *, included_only: bool = False
+    ) -> list[dict[str, Any]]:
+        """List career documents, oldest first.
+
+        ``included_only`` filters to documents the user has not muted — the
+        corpus-assembly view. Callers that render the management UI want every
+        document regardless of that flag.
+        """
+        async with self._session() as session:
+            stmt = select(CareerDocument)
+            if kind is not None:
+                stmt = stmt.where(CareerDocument.kind == kind)
+            if included_only:
+                stmt = stmt.where(CareerDocument.include_in_context.is_(True))
+            stmt = stmt.order_by(CareerDocument.created_at)
+            result = await session.execute(stmt)
+            return [self._career_document_to_dict(row) for row in result.scalars().all()]
+
+    async def update_career_document(
+        self, document_id: str, updates: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Update a career document. Returns None if it does not exist."""
+        async with self._session() as session:
+            row = await session.get(CareerDocument, document_id)
+            if row is None:
+                return None
+            for key, value in updates.items():
+                if key in ("document_id", "created_at"):
+                    logger.warning("Ignoring immutable career-document field: %s", key)
+                elif hasattr(row, key):
+                    setattr(row, key, value)
+                else:
+                    logger.warning("Ignoring unknown career-document field: %s", key)
+            row.updated_at = _now()
+            await session.commit()
+            return self._career_document_to_dict(row)
+
+    async def delete_career_document(self, document_id: str) -> bool:
+        """Delete a career document by ID."""
+        async with self._session() as session:
+            row = await session.get(CareerDocument, document_id)
+            if row is None:
+                return False
+            await session.delete(row)
+            await session.commit()
+            return True
+
     async def reset_database(self) -> None:
         """Reset by truncating user-document tables and clearing uploads.
 
         Clears resumes/jobs/improvements **and** tracker applications (leaving
-        orphaned cards after a full data reset would be a bug). Encrypted
-        ``api_keys`` are preserved — matching the pre-existing behavior where a
-        reset never wiped the user's stored credentials.
+        orphaned cards after a full data reset would be a bug) **and** the
+        career corpus (it is user documents, so a "reset all data" that left it
+        behind would be a bug for the same reason). Encrypted ``api_keys`` are
+        preserved — matching the pre-existing behavior where a reset never wiped
+        the user's stored credentials.
         """
         async with self._session() as session:
+            await session.execute(delete(CareerDocument))
             await session.execute(delete(Application))
             await session.execute(delete(Improvement))
             await session.execute(delete(Job))

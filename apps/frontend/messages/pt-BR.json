@@ -45,7 +45,8 @@
     "settings": "Configurações",
     "backToDashboard": "Voltar ao Painel",
     "goToSettings": "Ir para Configurações",
-    "applicationTracker": "Acompanhamento de candidaturas"
+    "applicationTracker": "Acompanhamento de candidaturas",
+    "careerCorpus": "Corpus de carreira"
   },
   "dashboard": {
     "title": "Painel",
@@ -1047,6 +1048,70 @@
       "errors": "Erros",
       "warnings": "Avisos",
       "infos": "Informações"
+    }
+  },
+  "career": {
+    "title": "Corpus de carreira",
+    "subtitle": "Tudo o que você fez, em um só lugar.",
+    "documents": {
+      "heading": "Documentos",
+      "empty": "Ainda não há documentos. Envie uma avaliação de desempenho ou cole algumas anotações para começar.",
+      "summary": "{count} documentos · {chars} caracteres no corpus",
+      "paste": "Colar texto",
+      "upload": "Enviar arquivo",
+      "uploading": "Enviando…",
+      "newTitle": "Novo documento",
+      "titleLabel": "Título",
+      "kindLabel": "Tipo",
+      "contentLabel": "Conteúdo",
+      "filterAll": "Todos os tipos",
+      "inCorpus": "No corpus",
+      "muted": "Silenciado",
+      "charCount": "{count} caracteres",
+      "edit": "Editar",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "delete": "Excluir",
+      "deleteConfirm": "Excluir este documento? Esta ação não pode ser desfeita.",
+      "loading": "Carregando…"
+    },
+    "masterResume": {
+      "label": "Currículo principal",
+      "linked": "Vinculado — edite no Editor",
+      "hint": "Lido ao vivo do seu currículo principal. Nunca copiado, então não pode ficar dessincronizado."
+    },
+    "kinds": {
+      "review": "Avaliação de desempenho",
+      "brag": "Documento de conquistas",
+      "project": "Descrição de projeto",
+      "resume": "Currículo",
+      "jd": "Descrição da vaga",
+      "ladder": "Trilha de carreira",
+      "other": "Outro"
+    },
+    "errors": {
+      "load": "Não foi possível carregar seus documentos de carreira.",
+      "save": "Não foi possível salvar o documento.",
+      "delete": "Não foi possível excluir o documento.",
+      "upload": "Não foi possível enviar o arquivo."
+    },
+    "answer": {
+      "heading": "Responder a uma pergunta de formulário",
+      "subtitle": "Cole uma pergunta de uma candidatura. A resposta vem apenas do seu próprio histórico.",
+      "questionLabel": "Pergunta",
+      "placeholder": "Descreva uma situação em que você liderou um projeto sem autoridade formal…",
+      "toneLabel": "Tom",
+      "maxWordsLabel": "Limite de palavras",
+      "ask": "Responder",
+      "asking": "Pensando…",
+      "answerLabel": "Resposta",
+      "sourcesLabel": "Com base em",
+      "gapsLabel": "Não sustentado pelo seu histórico",
+      "noSources": "Nenhuma fonte citada — trate esta resposta com desconfiança.",
+      "truncated": "Seu corpus era grande demais para ser incluído por completo. Alguns documentos ficaram de fora.",
+      "emptyCorpus": "Adicione um documento primeiro — as respostas valem o que você colocar nelas.",
+      "copy": "Copiar",
+      "copied": "Copiado"
     }
   }
 }

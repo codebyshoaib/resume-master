@@ -17,6 +17,12 @@ from pydantic import ValidationError
 
 from app.config_cache import get_content_language, load_config as _load_config
 from app.database import db
+from app.routers._uploads import (
+    RESUME_MAX_BYTES,
+    RESUME_TYPES,
+    RESUME_TYPES_LABEL,
+    read_and_extract,
+)
 from app.pdf import render_resume_pdf, PDFRenderError
 from app.config import settings
 
@@ -718,12 +724,8 @@ async def _generate_auxiliary_messages(
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
-ALLOWED_TYPES = {
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-}
-MAX_FILE_SIZE = 4 * 1024 * 1024  # 4MB
+ALLOWED_TYPES = RESUME_TYPES  # kept as a module alias for existing importers
+MAX_FILE_SIZE = RESUME_MAX_BYTES
 
 
 @router.post("/upload", response_model=ResumeUploadResponse)
@@ -733,40 +735,12 @@ async def upload_resume(file: UploadFile = File(...)) -> ResumeUploadResponse:
     Converts the file to Markdown and stores it in the database.
     Optionally parses to structured JSON if LLM is configured.
     """
-    # Validate file type
-    if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file type: {file.content_type}. Allowed: PDF, DOC, DOCX",
-        )
-
-    # Read and validate size
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB",
-        )
-
-    if len(content) == 0:
-        raise HTTPException(status_code=400, detail="Empty file")
-
-    # Convert to markdown
-    try:
-        markdown_content = await parse_document(content, file.filename or "resume.pdf")
-    except Exception as e:
-        logger.error(f"Document parsing failed: {e}")
-        raise HTTPException(
-            status_code=422,
-            detail="Failed to parse document. Please ensure it's a valid PDF or DOCX file.",
-        )
-
-    # Validate extracted text is not empty (image-based PDFs / scanned documents)
-    if not markdown_content or not markdown_content.strip():
-        raise HTTPException(
-            status_code=422,
-            detail="Could not extract text from the uploaded file. The document may be image-based or scanned. Please upload a file with selectable text.",
-        )
+    markdown_content, size_bytes = await read_and_extract(
+        file,
+        allowed_types=RESUME_TYPES,
+        allowed_label=RESUME_TYPES_LABEL,
+        max_bytes=RESUME_MAX_BYTES,
+    )
 
     # Store in database first with "processing" status (atomic master assignment)
     # original_markdown is preserved permanently for date reference even after
@@ -804,7 +778,7 @@ async def upload_resume(file: UploadFile = File(...)) -> ResumeUploadResponse:
             "resume_id": resume["resume_id"],
             "processing_status": resume["processing_status"],
             "is_master": resume.get("is_master", False),
-            "size_bytes": len(content),
+            "size_bytes": size_bytes,
         },
     )
 

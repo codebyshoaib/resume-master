@@ -45,7 +45,8 @@
     "settings": "設定",
     "backToDashboard": "ダッシュボードに戻る",
     "goToSettings": "設定へ",
-    "applicationTracker": "応募トラッカー"
+    "applicationTracker": "応募トラッカー",
+    "careerCorpus": "キャリア資料庫"
   },
   "dashboard": {
     "title": "ダッシュボード",
@@ -1047,6 +1048,70 @@
       "errors": "エラー",
       "warnings": "警告",
       "infos": "情報"
+    }
+  },
+  "career": {
+    "title": "キャリア資料庫",
+    "subtitle": "これまでの実績を一か所にまとめます。",
+    "documents": {
+      "heading": "ドキュメント",
+      "empty": "まだドキュメントがありません。人事評価をアップロードするか、メモを貼り付けて始めましょう。",
+      "summary": "資料庫内に {count} 件のドキュメント · {chars} 文字",
+      "paste": "テキストを貼り付け",
+      "upload": "ファイルをアップロード",
+      "uploading": "アップロード中…",
+      "newTitle": "新しいドキュメント",
+      "titleLabel": "タイトル",
+      "kindLabel": "種類",
+      "contentLabel": "内容",
+      "filterAll": "すべての種類",
+      "inCorpus": "資料庫に含む",
+      "muted": "除外中",
+      "charCount": "{count} 文字",
+      "edit": "編集",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "delete": "削除",
+      "deleteConfirm": "このドキュメントを削除しますか？この操作は取り消せません。",
+      "loading": "読み込み中…"
+    },
+    "masterResume": {
+      "label": "マスター履歴書",
+      "linked": "リンク済み — ビルダーで編集",
+      "hint": "マスター履歴書から直接読み込みます。コピーを作らないため、内容がずれることはありません。"
+    },
+    "kinds": {
+      "review": "人事評価",
+      "brag": "実績メモ",
+      "project": "プロジェクト概要",
+      "resume": "履歴書",
+      "jd": "求人票",
+      "ladder": "キャリアラダー",
+      "other": "その他"
+    },
+    "errors": {
+      "load": "キャリアドキュメントを読み込めませんでした。",
+      "save": "ドキュメントを保存できませんでした。",
+      "delete": "ドキュメントを削除できませんでした。",
+      "upload": "ファイルをアップロードできませんでした。"
+    },
+    "answer": {
+      "heading": "応募フォームの質問に答える",
+      "subtitle": "応募書類の質問を貼り付けてください。回答はあなた自身の経歴のみに基づきます。",
+      "questionLabel": "質問",
+      "placeholder": "正式な権限がない状況でプロジェクトを主導した経験を教えてください…",
+      "toneLabel": "トーン",
+      "maxWordsLabel": "文字数の上限",
+      "ask": "回答を作成",
+      "asking": "考えています…",
+      "answerLabel": "回答",
+      "sourcesLabel": "根拠となる資料",
+      "gapsLabel": "経歴では裏付けられない内容",
+      "noSources": "出典が示されていません。この回答は慎重に扱ってください。",
+      "truncated": "資料庫が大きすぎるため全体を含められませんでした。一部のドキュメントは除外されています。",
+      "emptyCorpus": "まずドキュメントを追加してください。回答の質は投入した内容次第です。",
+      "copy": "コピー",
+      "copied": "コピーしました"
     }
   }
 }

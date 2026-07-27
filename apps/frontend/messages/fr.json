@@ -45,7 +45,8 @@
     "settings": "Paramètres",
     "backToDashboard": "Retour au tableau de bord",
     "goToSettings": "Accéder aux paramètres",
-    "applicationTracker": "Suivi des candidatures"
+    "applicationTracker": "Suivi des candidatures",
+    "careerCorpus": "Corpus de carrière"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -1047,6 +1048,70 @@
       "projectFollowUps": "Questions sur les projets",
       "skillGaps": "Lacunes de compétences",
       "talkingPoints": "Points de discussion"
+    }
+  },
+  "career": {
+    "title": "Corpus de carrière",
+    "subtitle": "Tout ce que vous avez accompli, au même endroit.",
+    "documents": {
+      "heading": "Documents",
+      "empty": "Aucun document pour l'instant. Importez une évaluation de performance ou collez des notes pour commencer.",
+      "summary": "{count} documents · {chars} caractères dans le corpus",
+      "paste": "Coller du texte",
+      "upload": "Importer un fichier",
+      "uploading": "Import en cours…",
+      "newTitle": "Nouveau document",
+      "titleLabel": "Titre",
+      "kindLabel": "Type",
+      "contentLabel": "Contenu",
+      "filterAll": "Tous les types",
+      "inCorpus": "Dans le corpus",
+      "muted": "Désactivé",
+      "charCount": "{count} caractères",
+      "edit": "Modifier",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "delete": "Supprimer",
+      "deleteConfirm": "Supprimer ce document ? Cette action est irréversible.",
+      "loading": "Chargement…"
+    },
+    "masterResume": {
+      "label": "CV principal",
+      "linked": "Lié — modifiez-le dans l'Éditeur",
+      "hint": "Lu en direct depuis votre CV principal. Jamais copié, il ne peut donc pas se désynchroniser."
+    },
+    "kinds": {
+      "review": "Évaluation de performance",
+      "brag": "Journal de réussites",
+      "project": "Présentation de projet",
+      "resume": "CV",
+      "jd": "Offre d'emploi",
+      "ladder": "Grille de carrière",
+      "other": "Autre"
+    },
+    "errors": {
+      "load": "Impossible de charger vos documents de carrière.",
+      "save": "Impossible d'enregistrer le document.",
+      "delete": "Impossible de supprimer le document.",
+      "upload": "Impossible d'importer le fichier."
+    },
+    "answer": {
+      "heading": "Répondre à une question de formulaire",
+      "subtitle": "Collez une question de candidature. La réponse s'appuie uniquement sur votre propre parcours.",
+      "questionLabel": "Question",
+      "placeholder": "Décrivez une situation où vous avez mené un projet sans autorité formelle…",
+      "toneLabel": "Ton",
+      "maxWordsLabel": "Limite de mots",
+      "ask": "Répondre",
+      "asking": "Réflexion…",
+      "answerLabel": "Réponse",
+      "sourcesLabel": "Fondé sur",
+      "gapsLabel": "Non étayé par votre parcours",
+      "noSources": "Aucune source citée — considérez cette réponse avec méfiance.",
+      "truncated": "Votre corpus était trop volumineux pour être inclus en entier. Certains documents ont été omis.",
+      "emptyCorpus": "Ajoutez d'abord un document : la qualité des réponses dépend de ce que vous fournissez.",
+      "copy": "Copier",
+      "copied": "Copié"
     }
   }
 }
