@@ -74,6 +74,43 @@ deleteApplication(id: string) → void
 bulkDeleteApplications(applicationIds: string[]) → ApplicationActionResponse
 ```
 
+## Career Corpus (`lib/api/career.ts`)
+
+See [career-corpus.md](../features/career-corpus.md) for the design, including
+why there is deliberately **no retrieval layer**.
+
+```typescript
+// Documents. The list ships truncated previews (`preview`, `char_count`);
+// only fetchCareerDocument returns the full `content`.
+listCareerDocuments(kind?: CareerDocumentKind) → CareerDocumentListResponse
+fetchCareerDocument(id: string) → CareerDocument
+createCareerDocument(payload: CareerDocumentCreate) → CareerDocument   // pasted text
+uploadCareerDocument(file: File, kind?) → CareerDocument               // PDF/DOC/DOCX/TXT/MD
+updateCareerDocument(id: string, payload: CareerDocumentUpdate) → CareerDocument
+deleteCareerDocument(id: string) → void                               // 204, no body
+
+// Grounded answers
+answerCareerQuestion(payload: CareerAnswerRequest) → CareerAnswer
+fetchCareerContextStats() → CareerContextStats
+```
+
+`CareerAnswer` = `{ answer, used_sources: CareerSourceRef[], gaps: string[], truncated }`.
+
+- **`used_sources` is the verification surface.** `kind` is the source *type*
+  (`master_resume` | `document` | `fact`), not the document's own kind. Ids the
+  model invents are dropped **server-side** and never appear here.
+- Empty `used_sources` + non-empty `gaps` is a valid answer ("no evidence for
+  this, here is what's missing") and the UI flags it rather than rendering it
+  like a sourced answer.
+- **An empty corpus returns 422** and the LLM is never called. Gate the control
+  on `fetchCareerContextStats().source_count` so the user sees why rather than
+  hitting the error.
+- `truncated` means the corpus did not fit the prompt budget — surface it, and
+  treat it as the signal to add FTS5 retrieval rather than raising the budget.
+
+> `uploadCareerDocument` uses raw `fetch`, not `apiFetch`: `FormData` must set
+> its own multipart boundary, so no `Content-Type` header may be sent.
+
 ## Config Operations (`lib/api/config.ts`)
 
 ```typescript

@@ -17,6 +17,7 @@ App Router under `app/`. A `(default)` route group wraps the main app in provide
 | `/builder` | `app/(default)/builder/page.tsx` | Client wrapper → `components/builder/resume-builder.tsx` | Master-resume editor (forms, drag-drop sections, templates, AI regenerate, cover letter / outreach) |
 | `/tailor` | `app/(default)/tailor/page.tsx` | Client | Paste JD → preview/confirm tailored resume (diff modal) |
 | `/tracker` | `app/(default)/tracker/page.tsx` | Client | Kanban application tracker — 7-column board (drag/drop, bulk ops, manual add) |
+| `/career` | `app/(default)/career/page.tsx` | Client | Career corpus — document store (upload/paste/edit/mute) + grounded answers to application-form questions with citations |
 | `/settings` | `app/(default)/settings/page.tsx` | Client | LLM provider/model/key, per-provider API keys, features, prompts, language, reset DB |
 | `/resumes/[id]` | `app/(default)/resumes/[id]/page.tsx` | Client | View one resume, download PDF, rename, enrichment modal |
 | `/print/resumes/[id]` | `app/print/resumes/[id]/page.tsx` | **Server** | Print-only resume render for PDF (reads `searchParams` for template settings + `lang`) |
@@ -39,6 +40,9 @@ components/
   builder/           # builder page UI + forms/ (per-section form components)
   dashboard/         # resume list/card, upload dialog
   tailor/            # diff-preview-modal
+  career/            # career-documents (list/upload/mute), career-answer
+                     #   (question -> grounded answer + citations),
+                     #   document-editor-dialog
   tracker/           # kanban-board, kanban-column, application-card,
                      #   card-detail-modal, bulk-action-bar,
                      #   manual-add-application-dialog, reorder.ts (pure planMove)
@@ -68,12 +72,13 @@ tests/               # vitest (see Testing)
 
 All backend calls go through **`lib/api/`** — never call `fetch` to the backend directly from a component.
 
-- `lib/api/client.ts` — single source of truth. Exports `apiFetch / apiPost / apiPatch / apiPut / apiDelete`, `API_URL`, `API_BASE`, `getUploadUrl()`.
+- `lib/api/client.ts` — single source of truth. Exports `apiFetch / apiPost / apiPatch / apiPut / apiDelete`, `API_URL`, `API_BASE`, `getUploadUrl()`, plus `extractDetail` / `asJson` (FastAPI error-detail coercion — shared, do not re-implement per client).
   - Base URL: `NEXT_PUBLIC_API_URL` (default `'/'`) → `API_BASE` becomes `/api/v1`. On the **server** a `/`-relative base is rewritten to `http://127.0.0.1:8000/api/v1` (`INTERNAL_API_ORIGIN`); browser uses the relative path (proxied by `next.config.ts` rewrites to `BACKEND_ORIGIN`).
   - Default request timeout **240_000ms** (matches backend `wait_for` hard limit). `AbortError` → friendly "Request timed out" message.
 - `lib/api/resume.ts` — resumes/jobs: upload, improve / improve.preview / improve.confirm, fetch, list, update (PATCH), PDF URLs + blob download, delete, cover-letter / outreach generate+update, rename, retry-processing, fetch JD.
 - `lib/api/config.ts` — LLM config, `testLlmConnection`, system `/status`, feature flags, prompt config, **feature prompts** (`FeaturePromptsError` for 422 `missing_placeholders`), **per-provider API-key management** (each provider's key persists independently — switching the active provider no longer wipes another's; stored encrypted server-side), language config, `resetDatabase`. `PROVIDER_INFO` lists supported providers + default models.
 - `lib/api/enrichment.ts` — AI enrichment (analyze/enhance/apply) and AI regenerate (regenerate/apply-regenerated).
+- `lib/api/career.ts` — career corpus: document CRUD, multipart upload (raw `fetch`, since `FormData` must set its own boundary), `answerCareerQuestion`, `fetchCareerContextStats`. See [career-corpus.md](../../docs/agent/features/career-corpus.md).
 - `lib/api/tracker.ts` — application-tracker CRUD/bulk over `apiFetch/apiPost/apiPatch/apiDelete`: grouped list, detail (JD + resume), manual add, status/position/notes PATCH, bulk move, delete, bulk-delete.
 - `lib/api/index.ts` — barrel re-export (note: not everything is re-exported; some functions are imported from `./resume` / `./config` / `./enrichment` directly).
 
@@ -93,7 +98,7 @@ Two distinct settings, configured independently in Settings:
 - **UI language** — interface text, client-only (`uiLanguage`, localStorage).
 - **Content language** — language the LLM writes resumes/cover letters in (`contentLanguage`, persisted to backend).
 
-**Supported locales (source of truth = `i18n/config.ts`):** `en`, `es`, `zh`, `ja`, `pt` (the file is `messages/pt-BR.json`, imported as `pt`). The `docs/agent/features/i18n.md` table is stale — it omits `pt`; trust the code.
+**Supported locales (source of truth = `i18n/config.ts`):** `en`, `es`, `zh`, `ja`, `pt` (the file is `messages/pt-BR.json`, imported as `pt`), `fr` — **six**. Always trust `i18n/config.ts`: this file previously said five and `docs/agent/features/i18n.md` omits `pt`.
 
 Engine (no external i18n lib, plain JSON):
 - `i18n/config.ts` — `locales`, `defaultLocale='en'`, `localeNames`, `localeFlags`.
@@ -108,11 +113,11 @@ Engine (no external i18n lib, plain JSON):
 export type Messages = typeof en;                       // shape derived from en.json
 const allMessages: Record<Locale, Messages> = { en, es, zh, ja, pt };
 ```
-Because every locale is typed as `Messages` (= the exact shape of `en.json`), **every locale JSON must structurally match `en.json` exactly.** Add a key to `en.json` and the production `tsc` / `next build` FAILS until that same key path exists in `es`, `zh`, `ja`, and `pt-BR`. (A real build break was caused by exactly this.)
+Because every locale is typed as `Messages` (= the exact shape of `en.json`), **every locale JSON must structurally match `en.json` exactly.** Add a key to `en.json` and the production `tsc` / `next build` FAILS until that same key path exists in `es`, `zh`, `ja`, `pt-BR`, and `fr`. (A real build break was caused by exactly this.)
 
-**When editing translations:** any key you add/remove/rename in `en.json` MUST be mirrored in all 5 files (`en`, `es`, `zh`, `ja`, `pt-BR`) with identical structure. `npm run dev` may tolerate drift; the build will not.
+**When editing translations:** any key you add/remove/rename in `en.json` MUST be mirrored in all 6 files (`en`, `es`, `zh`, `ja`, `pt-BR`, `fr`) with identical structure. `npm run dev` may tolerate drift; the build will not.
 
-The tracker ships a `tracker.*` key tree (`columns`, `modal`, `manualAdd`, `bulk`, `errors`, `scroll`) plus `nav.applicationTracker`, present in all 5 locale files — subject to the same parity rule.
+The tracker ships a `tracker.*` key tree (`columns`, `modal`, `manualAdd`, `bulk`, `errors`, `scroll`) plus `nav.applicationTracker`, present in all locale files — subject to the same parity rule. The career corpus ships a `career.*` tree (`documents`, `masterResume`, `kinds`, `answer`, `errors`) plus `nav.careerCorpus` under the same rule.
 
 See [i18n.md](../../docs/agent/features/i18n.md), [i18n-preparation.md](../../docs/agent/features/i18n-preparation.md).
 

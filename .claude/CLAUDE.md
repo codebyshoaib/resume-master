@@ -114,6 +114,7 @@ apps/
 | Feature | Documentation |
 |---------|---------------|
 | Application tracker | [application-tracker.md](../docs/agent/features/application-tracker.md) |
+| Career corpus | [career-corpus.md](../docs/agent/features/career-corpus.md) |
 | Custom sections | [custom-sections.md](../docs/agent/features/custom-sections.md) |
 | Resume templates | [resume-templates.md](../docs/agent/features/resume-templates.md) |
 | i18n | [i18n.md](../docs/agent/features/i18n.md) |
