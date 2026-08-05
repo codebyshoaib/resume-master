@@ -135,15 +135,15 @@ AI_PHRASE_REPLACEMENTS: dict[str, str] = {
 
 
 # Prompt for injecting missing keywords into a resume
-KEYWORD_INJECTION_PROMPT = """Inject the following keywords into this resume by reframing the candidate's existing experience in the job description's language. Target EVERY section (summary, work experience, projects, technical skills) by default.
+KEYWORD_INJECTION_PROMPT = """Every keyword below already has matching evidence in the candidate's master resume but is missing from the current tailored draft. Reframe that existing evidence in the job description's language so it appears in the tailored resume.
 
 CRITICAL RULES:
-1. Work every keyword below into the resume. Where the master resume has adjacent work, reframe it in the keyword's language (e.g., if the master shows "used Python for data analysis", surface "Python" and "data analysis"); where it does not, attach the keyword to the role or project it fits best.
-2. Add the keywords to the technical skills list as well as into the bullet text
-3. Rephrase bullet points to carry the keywords. You may state concrete figures on the candidate's work.
+1. Only touch the section(s) where the master resume already evidences the keyword's underlying work (e.g., if the master shows "used Python for data analysis", surface "Python" and "data analysis" there). Do not attach a keyword to a section it has no evidence in.
+2. Add each keyword to the technical skills list only if the master resume's skills or experience already supports it
+3. Rephrase the relevant bullet points to carry the keyword's language; do not pad unrelated bullets just to mention it
 4. Maintain the exact same JSON structure
 5. Do not use em-dashes (—) or their variants (---, --)
-6. Make keyword incorporation the DEFAULT across all content sections, not an optional enhancement
+6. Leave sections with no supporting evidence for a keyword unchanged rather than forcing a mention in
 7. Never invent employers, job titles, dates, degrees, or certifications - those are checked against records
 
 Keywords to inject:

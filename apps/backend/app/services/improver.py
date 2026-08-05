@@ -676,6 +676,19 @@ def _prepare_keywords_for_prompt(job_keywords: dict[str, Any]) -> str:
     if keywords:
         sections.append("Additional keywords to weave in naturally:\n- " + "\n- ".join(str(k) for k in keywords))
 
+    responsibilities = job_keywords.get("key_responsibilities", [])
+    if responsibilities:
+        sections.append(
+            "Key responsibilities to reflect in bullets/summary:\n- "
+            + "\n- ".join(str(r) for r in responsibilities)
+        )
+
+    experience = job_keywords.get("experience_requirements", [])
+    if experience:
+        sections.append(
+            "Experience requirements to address:\n- " + "\n- ".join(str(e) for e in experience)
+        )
+
     return "\n\n".join(sections) if sections else "No specific keywords extracted."
 
 

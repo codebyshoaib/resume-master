@@ -104,14 +104,12 @@ async def refine_resume(
     # Pass 1: Keyword injection (if enabled)
     if config.enable_keyword_injection:
         keyword_analysis = analyze_keyword_gaps(job_keywords, current, master_resume)
-        # Inject every missing JD keyword, not just the ones the master resume
-        # already evidences. The analysis still reports the split (the UI shows
-        # which additions had no master-resume backing) but it no longer gates
-        # what gets written.
-        to_inject = (
-            keyword_analysis.injectable_keywords
-            + keyword_analysis.non_injectable_keywords
-        )
+        # Only inject keywords the master resume already evidences. Unbacked
+        # JD skills go through the verified skill-target-plan + diff pipeline
+        # instead (apply_diffs' add_skill gate), which the candidate reviews
+        # before saving — this pass has no such verification, so it must not
+        # be the one adding claims the resume can't back up.
+        to_inject = keyword_analysis.injectable_keywords
         if to_inject:
             logger.info(
                 "Injecting %d keywords: %s",
@@ -205,11 +203,12 @@ def analyze_keyword_gaps(
     tailored_text = _extract_all_text(tailored).lower()
     master_text = _extract_all_text(master).lower()
 
-    # Get all keywords from JD
+    # Get all keywords from JD. The extractor's loose "keywords" field is
+    # deliberately excluded — it is ATS padding (see jd_match.py), not a
+    # requirement, and injecting it stuffs bullets with generic filler.
     all_jd_keywords: set[str] = set()
     all_jd_keywords.update(jd_keywords.get("required_skills", []))
     all_jd_keywords.update(jd_keywords.get("preferred_skills", []))
-    all_jd_keywords.update(jd_keywords.get("keywords", []))
 
     # Find missing keywords
     missing: list[str] = []
@@ -620,10 +619,11 @@ def calculate_keyword_match(
     """
     resume_text = _extract_all_text(resume).lower()
 
+    # The loose "keywords" field is excluded — it's ATS padding, not a
+    # requirement (see analyze_keyword_gaps and jd_match.py).
     all_keywords: set[str] = set()
     all_keywords.update(jd_keywords.get("required_skills", []))
     all_keywords.update(jd_keywords.get("preferred_skills", []))
-    all_keywords.update(jd_keywords.get("keywords", []))
 
     # SVC-009: Return 0% if no keywords (not 100% - that's misleading)
     if not all_keywords:

@@ -313,8 +313,9 @@ class TestAnalyzeKeywordGaps:
 
     def test_identifies_injectable_vs_non_injectable(self, sample_resume, master_resume, sample_job_keywords):
         analysis = analyze_keyword_gaps(sample_job_keywords, sample_resume, master_resume)
-        # Every keyword lands in exactly one bucket
-        all_jd = set(sample_job_keywords["required_skills"] + sample_job_keywords["preferred_skills"] + sample_job_keywords["keywords"])
+        # Only required/preferred skills are graded — the loose "keywords" field
+        # is ATS padding and is excluded (see test_excludes_loose_keywords_field).
+        all_jd = set(sample_job_keywords["required_skills"] + sample_job_keywords["preferred_skills"])
         present = all_jd - set(analysis.missing_keywords)
         injectable = set(analysis.injectable_keywords)
         non_injectable = set(analysis.non_injectable_keywords)
@@ -323,6 +324,21 @@ class TestAnalyzeKeywordGaps:
         assert injectable & non_injectable == set()
         # Present + missing = all keywords
         assert present | set(analysis.missing_keywords) == all_jd
+
+    def test_excludes_loose_keywords_field(self, sample_resume, master_resume):
+        """The extractor's loose "keywords" field is ATS padding (docs/agent/features/jd-match.md)
+        and must never drive what gets injected, even when master-backed and missing."""
+        tailored = copy.deepcopy(sample_resume)
+        tailored["additional"]["technicalSkills"] = [
+            s for s in tailored["additional"]["technicalSkills"] if s != "PostgreSQL"
+        ]
+        analysis = analyze_keyword_gaps(
+            {"required_skills": [], "preferred_skills": [], "keywords": ["PostgreSQL"]},
+            tailored,
+            master_resume,
+        )
+        assert "PostgreSQL" not in analysis.missing_keywords
+        assert "PostgreSQL" not in analysis.injectable_keywords
 
     def test_calculates_match_percentage(self, sample_resume, master_resume, sample_job_keywords):
         analysis = analyze_keyword_gaps(sample_job_keywords, sample_resume, master_resume)

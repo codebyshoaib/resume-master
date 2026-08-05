@@ -1,7 +1,15 @@
 """Content guards on the tailoring prompts.
 
 Two invariants this locks:
-1. JD-keyword incorporation is the DEFAULT across sections (the maintainer goal).
+1. JD-keyword incorporation in the diff/full-strategy tailoring pass
+   (`DIFF_IMPROVE_PROMPT`) is the DEFAULT across sections (the maintainer goal).
+   The separate, unverified `KEYWORD_INJECTION_PROMPT` refinement pass is
+   deliberately NOT this aggressive: it has no path allow-list or per-field
+   verification like the diff pass does, so it must stay scoped to keywords
+   the master resume already evidences — an earlier version told it to stuff
+   every JD keyword into every section by default (including the extractor's
+   loose "keywords" field, which jd_match.py itself documents as ATS padding),
+   which produced generic buzzword-stuffed resumes instead of real tailoring.
 2. The remaining floor stays present. The default tailoring strategy ("full") is
    deliberately JD-first: it claims the job description's skills, appends
    JD-relevant bullets, and states concrete figures, all surfaced in the preview
@@ -27,9 +35,13 @@ class TestJdIncorporationIsDefault:
         assert "By DEFAULT" in DIFF_IMPROVE_PROMPT
         assert "reframe" in DIFF_IMPROVE_PROMPT.lower()
 
-    def test_keyword_injection_targets_every_section_by_default(self):
-        assert "EVERY section" in KEYWORD_INJECTION_PROMPT
-        assert "DEFAULT" in KEYWORD_INJECTION_PROMPT
+    def test_keyword_injection_stays_evidence_gated(self):
+        """Regression: this pass must not force keywords into every section —
+        that produced buzzword-stuffed resumes (see module docstring)."""
+        assert "already has matching evidence in the candidate's master resume" in KEYWORD_INJECTION_PROMPT
+        assert "unchanged rather than forcing a mention" in KEYWORD_INJECTION_PROMPT
+        assert "EVERY section" not in KEYWORD_INJECTION_PROMPT
+        assert "the DEFAULT across all content sections" not in KEYWORD_INJECTION_PROMPT
 
     def test_cover_letter_reframes_in_jd_terminology(self):
         assert "terminology" in COVER_LETTER_PROMPT.lower()
